@@ -1,0 +1,21 @@
+openapi: 3.0.3
+info:
+  title: Parking Control API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+paths:
+  /api/barrier/entry-tickets:
+    post:
+      summary: Issue an entry ticket
+      operationId: issueEntryTicket
+      responses:
+        '200':
+          description: Entry ticket issued
+  /api/barrier/exit-validation:
+    post:
+      summary: Validate vehicle exit
+      operationId: validateExit
+      responses:
+        '200':
+          description: Exit validation result
