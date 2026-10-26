@@ -7,4 +7,3 @@ pub struct PostgresDatabase {
 pub trait DatabaseConnector: Send + Sync {
     async fn connect(database_url: &str) -> Result<PostgresDatabase, sea_orm::DbErr>;
 }
-

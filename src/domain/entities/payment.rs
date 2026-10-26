@@ -8,4 +8,3 @@ pub struct Payment {
     pub amount: Decimal,
     pub paid_at: DateTime<Utc>,
 }
-

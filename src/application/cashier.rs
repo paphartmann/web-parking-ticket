@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::domain::{entities::{parking_ticket::ParkingTicket, payment::Payment}, errors::DomainError};
+use crate::domain::{entities::payment::Payment, errors::DomainError};
 
 pub struct CalculateCharge {
     pub ticket_code: String,
@@ -23,6 +23,8 @@ pub struct RegisterPayment {
 
 pub trait CashierUseCases: Send + Sync {
     async fn calculate_charge(&self, request: CalculateCharge) -> Result<ChargeQuote, DomainError>;
-    async fn release_ticket_after_payment(&self, request: RegisterPayment) -> Result<Payment, DomainError>;
+    async fn release_ticket_after_payment(
+        &self,
+        request: RegisterPayment,
+    ) -> Result<Payment, DomainError>;
 }
-

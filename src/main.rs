@@ -21,4 +21,3 @@ fn rocket() -> _ {
         .mount("/", FileServer::from("frontend/public"))
         .mount("/", routes![issue_entry_ticket, validate_exit, health])
 }
-

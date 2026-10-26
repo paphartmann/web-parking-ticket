@@ -19,7 +19,9 @@ pub struct ExitValidation {
 }
 
 pub trait BarrierUseCases: Send + Sync {
-    async fn issue_entry_ticket(&self, request: IssueEntryTicket) -> Result<ParkingTicket, DomainError>;
+    async fn issue_entry_ticket(
+        &self,
+        request: IssueEntryTicket,
+    ) -> Result<ParkingTicket, DomainError>;
     async fn validate_exit(&self, request: ValidateExit) -> Result<ExitValidation, DomainError>;
 }
-

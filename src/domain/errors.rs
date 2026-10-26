@@ -5,4 +5,3 @@ pub enum DomainError {
     InvalidVehiclePlate,
     PaymentAmountMismatch,
 }
-

@@ -1,6 +1,6 @@
+use crate::domain::errors::DomainError;
 use chrono::{NaiveDate, NaiveDateTime};
 use rust_decimal::Decimal;
-use crate::domain::errors::DomainError;
 
 pub struct RevenueReport {
     pub start: NaiveDateTime,
@@ -18,6 +18,9 @@ pub trait ManagementUseCases: Send + Sync {
     async fn revenue_for_day(&self, day: NaiveDate) -> Result<RevenueReport, DomainError>;
     async fn revenue_for_month(&self, year: i32, month: u32) -> Result<RevenueReport, DomainError>;
     async fn courtesy_count_for_day(&self, day: NaiveDate) -> Result<CourtesyReport, DomainError>;
-    async fn courtesy_count_for_month(&self, year: i32, month: u32) -> Result<CourtesyReport, DomainError>;
+    async fn courtesy_count_for_month(
+        &self,
+        year: i32,
+        month: u32,
+    ) -> Result<CourtesyReport, DomainError>;
 }
-

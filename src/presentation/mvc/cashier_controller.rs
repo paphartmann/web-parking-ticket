@@ -7,4 +7,3 @@ pub trait CashierMvcController {
     async fn calculate_charge(&self, request: CalculateCharge) -> Result<ChargeQuote, DomainError>;
     async fn register_payment(&self, request: RegisterPayment) -> Result<Payment, DomainError>;
 }
-

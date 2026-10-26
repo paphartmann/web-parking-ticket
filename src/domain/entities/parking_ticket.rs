@@ -25,4 +25,3 @@ pub trait ParkingTicketBehavior {
     fn mark_as_released(&mut self, at: DateTime<Utc>);
     fn can_exit(&self, at: DateTime<Utc>) -> bool;
 }
-
