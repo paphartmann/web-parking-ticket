@@ -22,12 +22,14 @@ pub enum TicketStatus {
 }
 
 impl ParkingTicket {
-    pub fn is_within_courtesy_period(&self, at: DateTime<Utc>) {}
-    pub fn calculate_charge(&self, at: DateTime<Utc>) {}
-    pub fn mark_as_courtesy(&mut self, at: DateTime<Utc>) {}
-    pub fn mark_as_paid(&mut self, at: DateTime<Utc>) {}
-    pub fn mark_as_released(&mut self, at: DateTime<Utc>) {}
-    pub fn can_exit(&self, at: DateTime<Utc>) -> bool {false}
+    pub fn is_within_courtesy_period(&self, _at: DateTime<Utc>) {}
+    pub fn calculate_charge(&self, _at: DateTime<Utc>) {}
+    pub fn mark_as_courtesy(&mut self, _at: DateTime<Utc>) {}
+    pub fn mark_as_paid(&mut self, _at: DateTime<Utc>) {}
+    pub fn mark_as_released(&mut self, _at: DateTime<Utc>) {}
+    pub fn can_exit(&self, _at: DateTime<Utc>) -> bool {
+        false
+    }
 }
 
 pub struct Payment {

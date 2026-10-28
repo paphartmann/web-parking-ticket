@@ -39,12 +39,12 @@ pub struct RegisterPayment {
 pub struct Application;
 
 impl Application {
-    pub async fn issue_entry_ticket(&self, request: IssueEntryTicket) {}
-    pub async fn validate_exit(&self, request: ValidateExit) {}
-    pub async fn calculate_charge(&self, request: CalculateCharge) {}
-    pub async fn register_payment(&self, request: RegisterPayment) {}
-    pub async fn revenue_for_day(&self, day: NaiveDate) {}
-    pub async fn revenue_for_month(&self, year: i32, month: u32) {}
-    pub async fn courtesy_count_for_day(&self, day: NaiveDate) {}
-    pub async fn courtesy_count_for_month(&self, year: i32, month: u32) {}
+    pub async fn issue_entry_ticket(&self, _request: IssueEntryTicket) {}
+    pub async fn validate_exit(&self, _request: ValidateExit) {}
+    pub async fn calculate_charge(&self, _request: CalculateCharge) {}
+    pub async fn register_payment(&self, _request: RegisterPayment) {}
+    pub async fn revenue_for_day(&self, _day: NaiveDate) {}
+    pub async fn revenue_for_month(&self, _year: i32, _month: u32) {}
+    pub async fn courtesy_count_for_day(&self, _day: NaiveDate) {}
+    pub async fn courtesy_count_for_month(&self, _year: i32, _month: u32) {}
 }

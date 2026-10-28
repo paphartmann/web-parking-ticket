@@ -11,11 +11,11 @@ pub struct Repositories {
 }
 
 impl Repositories {
-    pub async fn find_ticket_by_id(&self, id: Uuid) {}
-    pub async fn find_ticket_by_code(&self, code: &str) {}
-    pub async fn find_active_ticket_by_plate(&self, plate: &str) {}
-    pub async fn save_ticket(&self, ticket: &ParkingTicket) {}
-    pub async fn save_payment(&self, payment: &Payment) {}
-    pub async fn total_received_between(&self, start: DateTime<Utc>, end: DateTime<Utc>) {}
-    pub async fn count_courtesy_between(&self, start: DateTime<Utc>, end: DateTime<Utc>) {}
+    pub async fn find_ticket_by_id(&self, _id: Uuid) {}
+    pub async fn find_ticket_by_code(&self, _code: &str) {}
+    pub async fn find_active_ticket_by_plate(&self, _plate: &str) {}
+    pub async fn save_ticket(&self, _ticket: &ParkingTicket) {}
+    pub async fn save_payment(&self, _payment: &Payment) {}
+    pub async fn total_received_between(&self, _start: DateTime<Utc>, _end: DateTime<Utc>) {}
+    pub async fn count_courtesy_between(&self, _start: DateTime<Utc>, _end: DateTime<Utc>) {}
 }

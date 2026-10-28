@@ -26,21 +26,11 @@ async fn register_payment(request: Json<Value>) {}
 
 #[get("/api/management/reports/revenue?<day>&<year>&<month>")]
 #[allow(unused_variables)]
-async fn revenue_report(
-    day: Option<&str>,
-    year: Option<i32>,
-    month: Option<u32>,
-) {
-}
+async fn revenue_report(day: Option<&str>, year: Option<i32>, month: Option<u32>) {}
 
 #[get("/api/management/reports/courtesy?<day>&<year>&<month>")]
 #[allow(unused_variables)]
-async fn courtesy_report(
-    day: Option<&str>,
-    year: Option<i32>,
-    month: Option<u32>,
-) {
-}
+async fn courtesy_report(day: Option<&str>, year: Option<i32>, month: Option<u32>) {}
 
 #[get("/health")]
 async fn health() {}
