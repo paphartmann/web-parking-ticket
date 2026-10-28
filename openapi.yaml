@@ -2,20 +2,254 @@ openapi: 3.0.3
 info:
   title: Parking Control API
   version: 1.0.0
+  description: API outline for the parking control assignment. Operations are skeletons and are not implemented yet.
 servers:
   - url: http://localhost:8000
 paths:
+  /health:
+    get:
+      summary: Check server health
+      operationId: health
+      responses:
+        '200':
+          description: Server is responding
   /api/barrier/entry-tickets:
     post:
       summary: Issue an entry ticket
       operationId: issueEntryTicket
+      description: Called by the entry barrier when a vehicle enters.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntryTicketRequest'
       responses:
         '200':
-          description: Entry ticket issued
+          description: Entry ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParkingTicket'
   /api/barrier/exit-validation:
     post:
       summary: Validate vehicle exit
       operationId: validateExit
+      description: Called by the exit barrier to check whether it may open.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExitValidationRequest'
       responses:
         '200':
-          description: Exit validation result
+          description: Exit validation decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExitValidation'
+  /api/cashier/tickets/{ticketCode}/charge:
+    get:
+      summary: Calculate the ticket charge
+      operationId: calculateCharge
+      parameters:
+        - name: ticketCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Charge quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChargeQuote'
+  /api/cashier/payments:
+    post:
+      summary: Register payment and release a ticket
+      operationId: registerPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+  /api/management/reports/revenue:
+    get:
+      summary: Get revenue for a day or month
+      operationId: getRevenueReport
+      description: Supply either day, or both year and month.
+      parameters:
+        - name: day
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        '200':
+          description: Revenue report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevenueReport'
+  /api/management/reports/courtesy:
+    get:
+      summary: Count courtesy tickets for a day or month
+      operationId: getCourtesyReport
+      description: Supply either day, or both year and month.
+      parameters:
+        - name: day
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        '200':
+          description: Courtesy ticket report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourtesyReport'
+components:
+  schemas:
+    EntryTicketRequest:
+      type: object
+      required: [vehiclePlate]
+      properties:
+        vehiclePlate:
+          type: string
+          example: ABC1234
+    ExitValidationRequest:
+      type: object
+      properties:
+        ticketCode:
+          type: string
+        vehiclePlate:
+          type: string
+      anyOf:
+        - required: [ticketCode]
+        - required: [vehiclePlate]
+    ParkingTicket:
+      type: object
+      required: [ticketId, ticketCode, vehiclePlate, enteredAt]
+      properties:
+        ticketId:
+          type: string
+          format: uuid
+        ticketCode:
+          type: string
+        vehiclePlate:
+          type: string
+        enteredAt:
+          type: string
+          format: date-time
+    ExitValidation:
+      type: object
+      required: [ticketId, mayOpenBarrier]
+      properties:
+        ticketId:
+          type: string
+          format: uuid
+        mayOpenBarrier:
+          type: boolean
+    ChargeQuote:
+      type: object
+      required: [ticketId, amount, courtesy]
+      properties:
+        ticketId:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          description: Monetary amount in BRL.
+          example: '15.00'
+        courtesy:
+          type: boolean
+    PaymentRequest:
+      type: object
+      required: [ticketId, amountReceived]
+      properties:
+        ticketId:
+          type: string
+          format: uuid
+        amountReceived:
+          type: string
+          description: Monetary amount in BRL.
+          example: '15.00'
+    Payment:
+      type: object
+      required: [paymentId, ticketId, amount, paidAt]
+      properties:
+        paymentId:
+          type: string
+          format: uuid
+        ticketId:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          description: Monetary amount in BRL.
+        paidAt:
+          type: string
+          format: date-time
+    RevenueReport:
+      type: object
+      required: [start, end, totalReceived]
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalReceived:
+          type: string
+          description: Total amount in BRL.
+    CourtesyReport:
+      type: object
+      required: [start, end, ticketCount]
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        ticketCount:
+          type: integer
+          format: int64
