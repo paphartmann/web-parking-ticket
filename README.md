@@ -88,4 +88,11 @@ npm install
 npm run build
 ```
 
-The application expects PostgreSQL for persistence. Configure a reachable database before using persistence features.
+The application requires PostgreSQL at startup. Set `DATABASE_URL`, for example:
+
+```sh
+export DATABASE_URL=postgres://postgres:postgres@localhost:5432/parking_control
+cargo run
+```
+
+On startup, the application creates the `parking_tickets` and `payments` tables and inserts two repeatable demo tickets when they are absent: `DEMO-ACTIVE` (`ABC1234`) and `DEMO-COURTESY` (`XYZ9876`). Schema creation and seeding are idempotent. The configured database user needs permission to create tables and indexes.

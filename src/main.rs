@@ -7,6 +7,7 @@ use rocket::fs::FileServer;
 use rocket::serde::Deserialize;
 use rocket::serde::json::Json;
 use rocket::{get, post, routes};
+use sea_orm::Database;
 
 use crate::application::{ChargeQuote, ExitValidation};
 use crate::domain::{CourtesyReport, ParkingTicket, Payment, RevenueReport};
@@ -84,7 +85,16 @@ async fn health() -> &'static str {
 }
 
 #[rocket::launch]
-fn rocket() -> _ {
+async fn rocket() -> _ {
+    let database_url =
+        std::env::var("DATABASE_URL").expect("DATABASE_URL must point to a PostgreSQL database");
+    let database = Database::connect(&database_url)
+        .await
+        .expect("could not connect to PostgreSQL");
+    let _repositories = persistence::Repositories::initialize(database)
+        .await
+        .expect("could not initialize persistence schema or demo data");
+
     rocket::build()
         .mount("/", FileServer::from("frontend/public"))
         .mount(
