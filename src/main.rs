@@ -6,8 +6,8 @@ mod presentation;
 use rocket::fs::FileServer;
 use rocket::serde::Deserialize;
 use rocket::serde::json::Json;
-use rocket::{get, post, routes};
-use sea_orm::Database;
+use rocket::{get, post, routes, State};
+use sea_orm::{Database, DatabaseConnection};
 
 use crate::application::{ChargeQuote, ExitValidation};
 use crate::domain::{CourtesyReport, ParkingTicket, Payment, RevenueReport};
@@ -37,31 +37,44 @@ struct PaymentRequest {
 
 #[post("/api/barrier/entry-tickets", data = "<request>")]
 #[allow(unused_variables)]
-async fn issue_entry_ticket(request: Json<EntryTicketRequest>) -> Json<ParkingTicket> {
+async fn issue_entry_ticket(
+    _database: &State<DatabaseConnection>,
+    request: Json<EntryTicketRequest>,
+) -> Json<ParkingTicket> {
     Json(ParkingTicket::default())
 }
 
 #[post("/api/barrier/exit-validation", data = "<request>")]
 #[allow(unused_variables)]
-async fn validate_exit(request: Json<ExitValidationRequest>) -> Json<ExitValidation> {
+async fn validate_exit(
+    _database: &State<DatabaseConnection>,
+    request: Json<ExitValidationRequest>,
+) -> Json<ExitValidation> {
     Json(ExitValidation::default())
 }
 
 #[get("/api/cashier/tickets/<ticket_code>/charge")]
 #[allow(unused_variables)]
-async fn calculate_charge(ticket_code: &str) -> Json<ChargeQuote> {
+async fn calculate_charge(
+    _database: &State<DatabaseConnection>,
+    ticket_code: &str,
+) -> Json<ChargeQuote> {
     Json(ChargeQuote::default())
 }
 
 #[post("/api/cashier/payments", data = "<request>")]
 #[allow(unused_variables)]
-async fn register_payment(request: Json<PaymentRequest>) -> Json<Payment> {
+async fn register_payment(
+    _database: &State<DatabaseConnection>,
+    request: Json<PaymentRequest>,
+) -> Json<Payment> {
     Json(Payment::default())
 }
 
 #[get("/api/management/reports/revenue?<day>&<year>&<month>")]
 #[allow(unused_variables)]
 async fn revenue_report(
+    _database: &State<DatabaseConnection>,
     day: Option<&str>,
     year: Option<i32>,
     month: Option<u32>,
@@ -72,6 +85,7 @@ async fn revenue_report(
 #[get("/api/management/reports/courtesy?<day>&<year>&<month>")]
 #[allow(unused_variables)]
 async fn courtesy_report(
+    _database: &State<DatabaseConnection>,
     day: Option<&str>,
     year: Option<i32>,
     month: Option<u32>,
@@ -80,7 +94,7 @@ async fn courtesy_report(
 }
 
 #[get("/health")]
-async fn health() -> &'static str {
+async fn health(_database: &State<DatabaseConnection>) -> &'static str {
     "ok"
 }
 
@@ -91,11 +105,12 @@ async fn rocket() -> _ {
     let database = Database::connect(&database_url)
         .await
         .expect("could not connect to PostgreSQL");
-    let _repositories = persistence::Repositories::initialize(database)
+    let repositories = persistence::Repositories::initialize(database)
         .await
         .expect("could not initialize persistence schema or demo data");
 
     rocket::build()
+        .manage(repositories.database)
         .mount("/", FileServer::from("frontend/public"))
         .mount(
             "/",
