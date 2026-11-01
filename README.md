@@ -74,6 +74,21 @@ Revenue results contain the report period (`start`, `end`) and `totalReceived`. 
 
 ## Running locally
 
+To run the app with its own PostgreSQL database in Docker, from the repository
+root run:
+
+```sh
+docker compose up --build
+```
+
+Open <http://localhost:8000>. Compose starts PostgreSQL, waits for it to become
+ready, and keeps its data in the `postgres_data` volume. Stop the containers
+with `Ctrl+C`; use `docker compose down` to remove them (the database volume is
+preserved). To also delete the saved database data, run `docker compose down -v`.
+
+The local setup below is an alternative if you already have Rust and PostgreSQL
+installed.
+
 Run the Rust application from the repository root:
 
 ```sh
