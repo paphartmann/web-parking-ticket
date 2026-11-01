@@ -11,27 +11,22 @@ on:
 permissions:
   contents: read
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   full-scan:
     name: Full web application scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Start application
+      - name: Start application and database
         run: |
-          cargo run --release > /tmp/parking-control.log 2>&1 &
-          echo $! > /tmp/parking-control.pid
+          docker compose up --build --detach
           for attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:8000/health >/dev/null; then
               exit 0
             fi
             sleep 2
           done
-          cat /tmp/parking-control.log
+          docker compose logs app
           exit 1
       - name: ZAP full scan
         uses: zaproxy/action-full-scan@v0.13.0
@@ -39,24 +34,25 @@ jobs:
           target: http://localhost:8000
           fail_action: false
           allow_issue_writing: false
+      - name: Stop application and database
+        if: always()
+        run: docker compose down --volumes --remove-orphans
 
   api-scan:
     name: API scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Start application
+      - name: Start application and database
         run: |
-          cargo run --release > /tmp/parking-control.log 2>&1 &
-          echo $! > /tmp/parking-control.pid
+          docker compose up --build --detach
           for attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:8000/health >/dev/null; then
               exit 0
             fi
             sleep 2
           done
-          cat /tmp/parking-control.log
+          docker compose logs app
           exit 1
       - name: ZAP API scan
         uses: zaproxy/action-api-scan@v0.10.0
@@ -65,3 +61,6 @@ jobs:
           format: openapi
           fail_action: false
           allow_issue_writing: false
+      - name: Stop application and database
+        if: always()
+        run: docker compose down --volumes --remove-orphans
