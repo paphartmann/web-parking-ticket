@@ -9,9 +9,9 @@ FROM docker.io/library/rust:1-bookworm AS backend-build
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
-ARG CARGO_BUILD_JOBS
-RUN if [ -n "$CARGO_BUILD_JOBS" ]; then \
-      cargo build --release --jobs "$CARGO_BUILD_JOBS"; \
+ARG BUILD_JOBS
+RUN if [ -n "$BUILD_JOBS" ]; then \
+      cargo build --release --jobs "$BUILD_JOBS"; \
     else \
       cargo build --release; \
     fi

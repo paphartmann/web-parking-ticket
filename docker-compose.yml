@@ -17,7 +17,7 @@ services:
     build:
       context: .
       args:
-        CARGO_BUILD_JOBS: ${CARGO_BUILD_JOBS:-}
+        BUILD_JOBS: ${CARGO_BUILD_JOBS:-}
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/parking_control
     ports:
