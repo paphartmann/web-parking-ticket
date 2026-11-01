@@ -20,6 +20,7 @@ services:
         BUILD_JOBS: ${CARGO_BUILD_JOBS:-}
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/parking_control
+      ROCKET_ADDRESS: 0.0.0.0
     ports:
       - "8000:8000"
     depends_on:
