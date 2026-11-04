@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: API outline for the parking control assignment. Operations are skeletons and are not implemented yet.
 servers:
-  - url: http://localhost:8000
+  - url: http://localhost:8080
 paths:
   /health:
     get:
