@@ -5,5 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Parking Control</title>
   </head>
-  <body></body>
+  <body>
+    <main>
+      <h1>Parking Control</h1>
+      <section aria-labelledby="entry-heading">
+        <h2 id="entry-heading">Entrada de veículo</h2>
+        <form id="entry-form">
+          <label for="vehicle-plate">Placa do veículo</label>
+          <input id="vehicle-plate" name="vehiclePlate" type="text" autocomplete="off" maxlength="10" required />
+          <button id="issue-ticket" type="submit">Emitir ticket</button>
+        </form>
+        <p id="entry-error" role="alert"></p>
+        <section id="ticket-result" aria-live="polite" hidden>
+          <h3>Ticket emitido</h3>
+          <p>Código: <strong id="ticket-code"></strong></p>
+          <p>Placa: <span id="ticket-plate"></span></p>
+          <p>Entrada: <time id="ticket-time"></time></p>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/assets/main.js"></script>
+  </body>
 </html>

@@ -71,9 +71,12 @@ pub struct Application;
 impl Application {
     pub async fn issue_entry_ticket(
         &self,
-        _request: IssueEntryTicket,
+        request: IssueEntryTicket,
     ) -> Result<ParkingTicket, DomainError> {
-        Ok(ParkingTicket::default())
+        if request.vehicle_plate.trim().is_empty() {
+            return Err(DomainError::InvalidVehiclePlate);
+        }
+        Ok(ParkingTicket::issue(request.vehicle_plate, Utc::now()))
     }
 
     pub async fn validate_exit(
@@ -122,5 +125,40 @@ impl Application {
         _month: u32,
     ) -> Result<CourtesyReport, DomainError> {
         Ok(CourtesyReport::default())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Application, IssueEntryTicket};
+    use crate::domain::DomainError;
+
+    #[rocket::async_test]
+    async fn issue_entry_ticket_rejects_blank_plate() {
+        let result = Application
+            .issue_entry_ticket(IssueEntryTicket {
+                vehicle_plate: " \t\n ".to_owned(),
+            })
+            .await;
+
+        assert!(matches!(result, Err(DomainError::InvalidVehiclePlate)));
+    }
+
+    #[rocket::async_test]
+    async fn issue_entry_ticket_returns_normalized_active_ticket() {
+        let result = Application
+            .issue_entry_ticket(IssueEntryTicket {
+                vehicle_plate: "  abc1234 ".to_owned(),
+            })
+            .await;
+        let ticket = match result {
+            Ok(ticket) => ticket,
+            Err(_) => panic!("a non-empty plate should issue a ticket"),
+        };
+
+        assert_eq!(ticket.vehicle_plate, "ABC1234");
+        assert!(ticket.paid_at.is_none());
+        assert!(ticket.released_at.is_none());
+        assert!(matches!(ticket.status, crate::domain::TicketStatus::Active));
     }
 }

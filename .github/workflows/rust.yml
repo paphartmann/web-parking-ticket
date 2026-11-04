@@ -27,3 +27,14 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    - name: Install frontend dependencies
+      working-directory: frontend
+      run: npm install --no-package-lock
+    - name: Check frontend TypeScript
+      working-directory: frontend
+      run: npm run build

@@ -6,10 +6,10 @@ mod presentation;
 use rocket::fs::FileServer;
 use rocket::serde::Deserialize;
 use rocket::serde::json::Json;
-use rocket::{get, post, routes, State};
-use sea_orm::{Database, DatabaseConnection};
+use rocket::{State, get, post, routes};
+use sea_orm::Database;
 
-use crate::application::{ChargeQuote, ExitValidation};
+use crate::application::{Application, ChargeQuote, ExitValidation, IssueEntryTicket};
 use crate::domain::{CourtesyReport, ParkingTicket, Payment, RevenueReport};
 
 #[derive(Deserialize)]
@@ -38,16 +38,26 @@ struct PaymentRequest {
 #[post("/api/barrier/entry-tickets", data = "<request>")]
 #[allow(unused_variables)]
 async fn issue_entry_ticket(
-    _database: &State<DatabaseConnection>,
+    repositories: &State<persistence::Repositories>,
     request: Json<EntryTicketRequest>,
-) -> Json<ParkingTicket> {
-    Json(ParkingTicket::default())
+) -> Result<Json<ParkingTicket>, rocket::http::Status> {
+    let ticket = Application
+        .issue_entry_ticket(IssueEntryTicket {
+            vehicle_plate: request.vehicle_plate.clone(),
+        })
+        .await
+        .map_err(|_| rocket::http::Status::UnprocessableEntity)?;
+    repositories
+        .save_ticket(&ticket)
+        .await
+        .map_err(|_| rocket::http::Status::InternalServerError)?;
+    Ok(Json(ticket))
 }
 
 #[post("/api/barrier/exit-validation", data = "<request>")]
 #[allow(unused_variables)]
 async fn validate_exit(
-    _database: &State<DatabaseConnection>,
+    _database: &State<persistence::Repositories>,
     request: Json<ExitValidationRequest>,
 ) -> Json<ExitValidation> {
     Json(ExitValidation::default())
@@ -56,7 +66,7 @@ async fn validate_exit(
 #[get("/api/cashier/tickets/<ticket_code>/charge")]
 #[allow(unused_variables)]
 async fn calculate_charge(
-    _database: &State<DatabaseConnection>,
+    _database: &State<persistence::Repositories>,
     ticket_code: &str,
 ) -> Json<ChargeQuote> {
     Json(ChargeQuote::default())
@@ -65,7 +75,7 @@ async fn calculate_charge(
 #[post("/api/cashier/payments", data = "<request>")]
 #[allow(unused_variables)]
 async fn register_payment(
-    _database: &State<DatabaseConnection>,
+    _database: &State<persistence::Repositories>,
     request: Json<PaymentRequest>,
 ) -> Json<Payment> {
     Json(Payment::default())
@@ -74,7 +84,7 @@ async fn register_payment(
 #[get("/api/management/reports/revenue?<day>&<year>&<month>")]
 #[allow(unused_variables)]
 async fn revenue_report(
-    _database: &State<DatabaseConnection>,
+    _database: &State<persistence::Repositories>,
     day: Option<&str>,
     year: Option<i32>,
     month: Option<u32>,
@@ -85,7 +95,7 @@ async fn revenue_report(
 #[get("/api/management/reports/courtesy?<day>&<year>&<month>")]
 #[allow(unused_variables)]
 async fn courtesy_report(
-    _database: &State<DatabaseConnection>,
+    _database: &State<persistence::Repositories>,
     day: Option<&str>,
     year: Option<i32>,
     month: Option<u32>,
@@ -94,7 +104,7 @@ async fn courtesy_report(
 }
 
 #[get("/health")]
-async fn health(_database: &State<DatabaseConnection>) -> &'static str {
+async fn health(_database: &State<persistence::Repositories>) -> &'static str {
     "ok"
 }
 
@@ -110,7 +120,7 @@ async fn rocket() -> _ {
         .expect("could not initialize persistence schema or demo data");
 
     rocket::build()
-        .manage(repositories.database)
+        .manage(repositories)
         .mount("/", FileServer::from("frontend/public"))
         .mount(
             "/",

@@ -78,10 +78,14 @@ To run the app with its own PostgreSQL database in Docker, from the repository
 root run:
 
 ```sh
-docker compose up --build
+docker compose up
 ```
 
-Open <http://localhost:8000>. Compose starts PostgreSQL, waits for it to become
+Compose builds `parking-control:local` when it is missing and reuses that image
+on later runs. To rebuild after changing the application, run
+`docker compose up --build`.
+
+Open <http://localhost:8080>. Compose starts PostgreSQL, waits for it to become
 ready, and keeps its data in the `postgres_data` volume. Stop the containers
 with `Ctrl+C`; use `docker compose down` to remove them (the database volume is
 preserved). To also delete the saved database data, run `docker compose down -v`.
