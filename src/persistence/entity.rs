@@ -6,7 +6,7 @@ use sea_orm::entity::prelude::*;
 pub mod parking_ticket {
     use super::*;
 
-    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveActiveModelBehavior)]
     #[sea_orm(table_name = "parking_tickets")]
     pub struct Model {
         #[sea_orm(primary_key, auto_increment = false)]
@@ -32,13 +32,12 @@ pub mod parking_ticket {
         }
     }
 
-    impl ActiveModelBehavior for ActiveModel {}
 }
 
 pub mod payment {
     use super::*;
 
-    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveActiveModelBehavior)]
     #[sea_orm(table_name = "payments")]
     pub struct Model {
         #[sea_orm(primary_key, auto_increment = false)]
@@ -67,5 +66,4 @@ pub mod payment {
         }
     }
 
-    impl ActiveModelBehavior for ActiveModel {}
 }
