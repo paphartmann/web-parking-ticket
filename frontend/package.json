@@ -4,9 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc && find public/assets -name '*.js' -exec terser --module --compress --mangle --output '{}' -- '{}' \\;",
+    "clean": "node -e \"require('node:fs').rmSync('public/assets', { recursive: true, force: true })\""
   },
   "devDependencies": {
+    "terser": "^5.39.0",
     "typescript": "^5.0.0"
   }
 }

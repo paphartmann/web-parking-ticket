@@ -67,17 +67,28 @@ impl Repositories {
     }
 
     pub async fn save_ticket(&self, ticket: &ParkingTicket) -> Result<(), DomainError> {
-        use sea_orm::{ConnectionTrait, DatabaseBackend, Statement};
+        use sea_orm::{ActiveModelTrait, Set};
 
-        self.database.execute(Statement::from_sql_and_values(
-            DatabaseBackend::Postgres,
-            "INSERT INTO parking_tickets (id, code, vehicle_plate, entered_at, paid_at, released_at, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-            [
-                ticket.id.into(), ticket.code.clone().into(), ticket.vehicle_plate.clone().into(),
-                ticket.entered_at.into(), ticket.paid_at.into(), ticket.released_at.into(),
-                match &ticket.status { crate::domain::TicketStatus::Active => "active", crate::domain::TicketStatus::Courtesy => "courtesy", crate::domain::TicketStatus::Paid => "paid", crate::domain::TicketStatus::Released => "released" }.into(),
-            ],
-        )).await.map_err(|_| DomainError::TicketNotFound)?;
+        let ticket_model = entity::parking_ticket::ActiveModel {
+            id: Set(ticket.id),
+            code: Set(ticket.code.clone()),
+            vehicle_plate: Set(ticket.vehicle_plate.clone()),
+            entered_at: Set(ticket.entered_at.into()),
+            paid_at: Set(ticket.paid_at.map(Into::into)),
+            released_at: Set(ticket.released_at.map(Into::into)),
+            status: Set(match &ticket.status {
+                crate::domain::TicketStatus::Active => "active",
+                crate::domain::TicketStatus::Courtesy => "courtesy",
+                crate::domain::TicketStatus::Paid => "paid",
+                crate::domain::TicketStatus::Released => "released",
+            }
+            .to_owned()),
+        };
+
+        ticket_model
+            .insert(&self.database)
+            .await
+            .map_err(|_| DomainError::TicketNotFound)?;
         Ok(())
     }
 
