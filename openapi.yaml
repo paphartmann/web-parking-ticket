@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Parking Control API
   version: 1.0.0
-  description: API outline for the parking control assignment. Operations are skeletons and are not implemented yet.
+  description: API for parking ticket, payment, and management report workflows.
 servers:
   - url: http://localhost:8080
 paths:
@@ -13,6 +13,11 @@ paths:
       responses:
         '200':
           description: Server is responding
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: ok
   /api/barrier/entry-tickets:
     post:
       summary: Issue an entry ticket
@@ -166,7 +171,7 @@ components:
         - required: [vehiclePlate]
     ParkingTicket:
       type: object
-      required: [ticketId, ticketCode, vehiclePlate, enteredAt]
+      required: [ticketId, ticketCode, vehiclePlate, enteredAt, paidAt, releasedAt, status]
       properties:
         ticketId:
           type: string
@@ -178,6 +183,17 @@ components:
         enteredAt:
           type: string
           format: date-time
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        releasedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [Active, Courtesy, Paid, Released]
     ExitValidation:
       type: object
       required: [ticketId, mayOpenBarrier]
