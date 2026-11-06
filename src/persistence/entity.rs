@@ -1,11 +1,12 @@
-//! SeaORM database models. These are deliberately separate from the domain
-//! types so persistence details do not leak into the business model.
+//! SeaORM table models, kept separate from domain types so database mapping
+//! details do not leak into business rules.
 
 use sea_orm::entity::prelude::*;
 
 pub mod parking_ticket {
     use super::*;
 
+    /// Row representation for `parking_tickets`.
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveActiveModelBehavior)]
     #[sea_orm(table_name = "parking_tickets")]
     pub struct Model {
@@ -37,6 +38,7 @@ pub mod parking_ticket {
 pub mod payment {
     use super::*;
 
+    /// Row representation for `payments`.
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel, DeriveActiveModelBehavior)]
     #[sea_orm(table_name = "payments")]
     pub struct Model {

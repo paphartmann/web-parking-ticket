@@ -1,3 +1,8 @@
+//! Rocket entry point and HTTP adapter for the parking service.
+//!
+//! Request DTOs live here; business workflows are represented by
+//! [`application`] types and persisted through [`persistence`].
+
 mod application;
 mod domain;
 mod persistence;
@@ -12,13 +17,16 @@ use sea_orm::Database;
 use crate::application::{Application, ChargeQuote, ExitValidation, IssueEntryTicket};
 use crate::domain::{CourtesyReport, ParkingTicket, Payment, RevenueReport};
 
+/// JSON body accepted when a vehicle enters the parking lot.
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 #[serde(rename_all = "camelCase")]
 struct EntryTicketRequest {
+    /// License plate supplied by the client; normalized by the domain model.
     vehicle_plate: String,
 }
 
+/// Identifiers the exit workflow can use to locate a parking ticket.
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 #[serde(rename_all = "camelCase")]
@@ -27,6 +35,7 @@ struct ExitValidationRequest {
     vehicle_plate: Option<String>,
 }
 
+/// Cashier payment details supplied by the client.
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde")]
 #[serde(rename_all = "camelCase")]

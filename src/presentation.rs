@@ -1,4 +1,8 @@
-//! MVC controllers. Barrier actions are exposed as web service endpoints.
+//! Controller facades grouping operations by parking workflow.
+//!
+//! These types provide a presentation-layer boundary for barrier, cashier,
+//! and management actions; the current Rocket routes are declared in
+//! `main.rs`.
 
 use chrono::NaiveDate;
 
@@ -7,6 +11,7 @@ use crate::application::{
 };
 use crate::domain::{CourtesyReport, DomainError, ParkingTicket, Payment, RevenueReport};
 
+/// Operations associated with vehicle entry and exit barriers.
 pub struct BarrierController;
 
 impl BarrierController {
@@ -25,6 +30,7 @@ impl BarrierController {
     }
 }
 
+/// Operations used by the cashier workflow.
 pub struct CashierController;
 
 impl CashierController {
@@ -43,6 +49,7 @@ impl CashierController {
     }
 }
 
+/// Read-only reporting operations for parking management.
 pub struct ManagementController;
 
 impl ManagementController {

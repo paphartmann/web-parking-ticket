@@ -1,10 +1,11 @@
-//! Domain Model: core parking concepts and their business operations.
+//! Core parking concepts, state, and business operations.
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::Serialize;
 use uuid::Uuid;
 
+/// A vehicle's visit, from ticket issuance through payment and release.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ParkingTicket {
@@ -19,6 +20,7 @@ pub struct ParkingTicket {
     pub status: TicketStatus,
 }
 
+/// Lifecycle state exposed for a parking ticket.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TicketStatus {
@@ -29,6 +31,7 @@ pub enum TicketStatus {
 }
 
 impl ParkingTicket {
+    /// Create an active ticket, normalizing the plate and generating IDs.
     pub fn issue(vehicle_plate: String, at: DateTime<Utc>) -> Self {
         let plate = vehicle_plate.trim().to_ascii_uppercase();
         let code = format!("{}-{}", at.format("%y%m%d%H%M%S"), Uuid::new_v4().simple());
@@ -103,6 +106,7 @@ impl Default for ParkingTicket {
     }
 }
 
+/// A recorded amount received for a parking ticket.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Payment {
@@ -124,6 +128,7 @@ impl Default for Payment {
     }
 }
 
+/// Revenue total over the reported time interval.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RevenueReport {
@@ -143,6 +148,7 @@ impl Default for RevenueReport {
     }
 }
 
+/// Count of tickets granted courtesy over the reported time interval.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CourtesyReport {
@@ -162,6 +168,7 @@ impl Default for CourtesyReport {
     }
 }
 
+/// Business-rule failures returned by domain and application operations.
 pub enum DomainError {
     TicketNotFound,
     TicketAlreadyReleased,

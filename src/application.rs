@@ -1,4 +1,7 @@
 //! Application use cases for the barrier, cashier, and management workflows.
+//!
+//! This layer coordinates domain rules and persistence-facing workflows; the
+//! HTTP adapter translates these types to and from JSON.
 
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
@@ -7,20 +10,25 @@ use uuid::Uuid;
 
 use crate::domain::{CourtesyReport, DomainError, ParkingTicket, Payment, RevenueReport};
 
+/// Input needed to create a ticket at the entry barrier.
 pub struct IssueEntryTicket {
     pub vehicle_plate: String,
 }
 
+/// Ticket lookup values and the timestamp used for exit eligibility.
 pub struct ValidateExit {
     pub ticket_code: Option<String>,
     pub vehicle_plate: Option<String>,
     pub requested_at: DateTime<Utc>,
 }
 
+/// Result of checking whether a ticket may leave through the barrier.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExitValidation {
+    /// Ticket that was checked.
     pub ticket_id: Uuid,
+    /// Whether the barrier may be opened for this ticket.
     pub may_open_barrier: bool,
 }
 
@@ -33,6 +41,7 @@ impl Default for ExitValidation {
     }
 }
 
+/// Input for calculating a cashier quote at a specific instant.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CalculateCharge {
@@ -40,6 +49,7 @@ pub struct CalculateCharge {
     pub calculated_at: DateTime<Utc>,
 }
 
+/// Amount currently due for a ticket and whether it qualifies for courtesy.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChargeQuote {
@@ -58,6 +68,7 @@ impl Default for ChargeQuote {
     }
 }
 
+/// Input required to record a payment against a ticket.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RegisterPayment {

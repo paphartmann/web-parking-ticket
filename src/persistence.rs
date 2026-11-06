@@ -1,4 +1,4 @@
-//! Repository pattern and relational persistence boundary (SeaORM/PostgreSQL).
+//! Repository boundary for PostgreSQL storage through SeaORM.
 
 pub mod entity;
 
@@ -8,7 +8,9 @@ use uuid::Uuid;
 
 use crate::domain::{DomainError, ParkingTicket, Payment};
 
+/// Database-backed operations used to store and retrieve domain records.
 pub struct Repositories {
+    /// Shared SeaORM connection used by repository methods.
     pub database: DatabaseConnection,
 }
 
