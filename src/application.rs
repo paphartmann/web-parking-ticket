@@ -80,6 +80,28 @@ pub struct RegisterPayment {
 pub struct Application;
 
 impl Application {
+    pub async fn calculate_charge(
+        &self,
+        _request: CalculateCharge,
+    ) -> Result<ChargeQuote, DomainError> {
+        Ok(ChargeQuote::default())
+    }
+
+    pub async fn courtesy_count_for_day(
+        &self,
+        _day: NaiveDate,
+    ) -> Result<CourtesyReport, DomainError> {
+        Ok(CourtesyReport::default())
+    }
+
+    pub async fn courtesy_count_for_month(
+        &self,
+        _year: i32,
+        _month: u32,
+    ) -> Result<CourtesyReport, DomainError> {
+        Ok(CourtesyReport::default())
+    }
+
     pub async fn issue_entry_ticket(
         &self,
         request: IssueEntryTicket,
@@ -88,20 +110,6 @@ impl Application {
             return Err(DomainError::InvalidVehiclePlate);
         }
         Ok(ParkingTicket::issue(request.vehicle_plate, Utc::now()))
-    }
-
-    pub async fn validate_exit(
-        &self,
-        _request: ValidateExit,
-    ) -> Result<ExitValidation, DomainError> {
-        Ok(ExitValidation::default())
-    }
-
-    pub async fn calculate_charge(
-        &self,
-        _request: CalculateCharge,
-    ) -> Result<ChargeQuote, DomainError> {
-        Ok(ChargeQuote::default())
     }
 
     pub async fn register_payment(
@@ -123,19 +131,11 @@ impl Application {
         Ok(RevenueReport::default())
     }
 
-    pub async fn courtesy_count_for_day(
+    pub async fn validate_exit(
         &self,
-        _day: NaiveDate,
-    ) -> Result<CourtesyReport, DomainError> {
-        Ok(CourtesyReport::default())
-    }
-
-    pub async fn courtesy_count_for_month(
-        &self,
-        _year: i32,
-        _month: u32,
-    ) -> Result<CourtesyReport, DomainError> {
-        Ok(CourtesyReport::default())
+        _request: ValidateExit,
+    ) -> Result<ExitValidation, DomainError> {
+        Ok(ExitValidation::default())
     }
 }
 

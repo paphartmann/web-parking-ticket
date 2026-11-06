@@ -3,10 +3,54 @@
 pub mod entity;
 
 use chrono::{DateTime, Utc};
-use sea_orm::DatabaseConnection;
+use rust_decimal::Decimal;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
+};
 use uuid::Uuid;
 
-use crate::domain::{DomainError, ParkingTicket, Payment};
+use crate::{
+    domain::{
+        DomainError,
+        ParkingTicket, Payment, TicketStatus,
+    },
+    persistence::entity::{parking_ticket, payment},
+};
+
+impl TryFrom<entity::parking_ticket::Model> for ParkingTicket {
+    type Error = DomainError;
+
+    fn try_from(model: entity::parking_ticket::Model) -> Result<Self, Self::Error> {
+        let status = match model.status.as_str() {
+            "active" => TicketStatus::Active,
+            "courtesy" => TicketStatus::Courtesy,
+            "paid" => TicketStatus::Paid,
+            "released" => TicketStatus::Released,
+            _ => return Err(DomainError::InvalidStoredData),
+        };
+
+        Ok(Self {
+            id: model.id,
+            code: model.code,
+            vehicle_plate: model.vehicle_plate,
+            entered_at: model.entered_at.with_timezone(&Utc),
+            paid_at: model.paid_at.map(|at| at.with_timezone(&Utc)),
+            released_at: model.released_at.map(|at| at.with_timezone(&Utc)),
+            status,
+        })
+    }
+}
+
+impl From<entity::payment::Model> for Payment {
+    fn from(model: entity::payment::Model) -> Self {
+        Self {
+            id: model.id,
+            ticket_id: model.ticket_id,
+            amount: model.amount,
+            paid_at: model.paid_at.with_timezone(&Utc),
+        }
+    }
+}
 
 /// Database-backed operations used to store and retrieve domain records.
 pub struct Repositories {
@@ -50,22 +94,74 @@ impl Repositories {
 }
 
 impl Repositories {
-    pub async fn find_ticket_by_id(&self, _id: Uuid) -> Result<Option<ParkingTicket>, DomainError> {
-        Ok(None)
-    }
-
-    pub async fn find_ticket_by_code(
+    pub async fn count_courtesy_between(
         &self,
-        _code: &str,
-    ) -> Result<Option<ParkingTicket>, DomainError> {
-        Ok(None)
+        _start: DateTime<Utc>,
+        _end: DateTime<Utc>,
+    ) -> Result<usize, DbErr> {
+        Ok(entity::parking_ticket::Entity::find()
+            .all(&self.database)
+            .await?
+            .iter()
+            .map(|pm: &parking_ticket::Model| ParkingTicket::try_from(pm.clone()))
+            .filter(|rp| {
+                if let Ok(p) = rp {
+                    p.status == TicketStatus::Courtesy
+                } else {
+                    false
+                }
+            })
+            .count()
+            .into())
     }
 
     pub async fn find_active_ticket_by_plate(
         &self,
-        _plate: &str,
+        plate: &str,
     ) -> Result<Option<ParkingTicket>, DomainError> {
-        Ok(None)
+        let ticket = entity::parking_ticket::Entity::find()
+            .filter(entity::parking_ticket::Column::VehiclePlate.eq(plate))
+            .one(&self.database)
+            .await
+            .map_err(|_| DomainError::TicketNotFound)?;
+
+        ticket.map(ParkingTicket::try_from).transpose()
+    }
+
+    pub async fn find_ticket_by_code(
+        &self,
+        code: &str,
+    ) -> Result<Option<ParkingTicket>, DomainError> {
+        let ticket = entity::parking_ticket::Entity::find()
+            .filter(entity::parking_ticket::Column::Code.eq(code))
+            .one(&self.database)
+            .await
+            .map_err(|_| DomainError::TicketNotFound)?;
+
+        ticket.map(ParkingTicket::try_from).transpose()
+    }
+
+    pub async fn find_ticket_by_id(&self, id: Uuid) -> Result<Option<ParkingTicket>, DomainError> {
+        let ticket = entity::parking_ticket::Entity::find_by_id(id)
+            .one(&self.database)
+            .await
+            .map_err(|_| DomainError::TicketNotFound)?;
+
+        ticket.map(ParkingTicket::try_from).transpose()
+    }
+
+    pub async fn save_payment(&self, payment: &Payment) -> Result<(), DbErr> {
+        use sea_orm::{ActiveModelTrait, Set};
+
+        let payment_model = entity::payment::ActiveModel {
+            id: Set(payment.id),
+            ticket_id: Set(payment.ticket_id),
+            amount: Set(payment.amount),
+            paid_at: Set(payment.paid_at.into()),
+        };
+
+        payment_model.insert(&self.database).await?;
+        Ok(())
     }
 
     pub async fn save_ticket(&self, ticket: &ParkingTicket) -> Result<(), DomainError> {
@@ -94,23 +190,18 @@ impl Repositories {
         Ok(())
     }
 
-    pub async fn save_payment(&self, _payment: &Payment) -> Result<(), DomainError> {
-        Ok(())
-    }
-
     pub async fn total_received_between(
         &self,
-        _start: DateTime<Utc>,
-        _end: DateTime<Utc>,
-    ) -> Result<rust_decimal::Decimal, DomainError> {
-        Ok(rust_decimal::Decimal::ZERO)
-    }
-
-    pub async fn count_courtesy_between(
-        &self,
-        _start: DateTime<Utc>,
-        _end: DateTime<Utc>,
-    ) -> Result<u64, DomainError> {
-        Ok(0)
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> Result<Decimal, DbErr> {
+        Ok(entity::payment::Entity::find()
+            .filter(payment::Column::PaidAt.gte(start))
+            .filter(payment::Column::PaidAt.lte(end))
+            .all(&self.database)
+            .await?
+            .iter()
+            .map(|m| m.amount)
+            .sum())
     }
 }

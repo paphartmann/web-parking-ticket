@@ -1,7 +1,7 @@
 //! Core parking concepts, state, and business operations.
 
 use chrono::{DateTime, Utc};
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, dec};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -21,7 +21,7 @@ pub struct ParkingTicket {
 }
 
 /// Lifecycle state exposed for a parking ticket.
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum TicketStatus {
     Active,
@@ -31,6 +31,29 @@ pub enum TicketStatus {
 }
 
 impl ParkingTicket {
+    pub fn calculate_charge(&self, at: DateTime<Utc>) -> Decimal {
+        let minutes = (at - self.entered_at).num_minutes();
+        if minutes <= 15 {
+            Decimal::ZERO
+        } else if minutes <= 60 {
+            dec!(15)
+        } else {
+            let hours = Decimal::from(minutes / 60);
+            dec!(15) + (dec!(4.5) * hours)
+        }
+    }
+    pub fn can_exit(&self, at: DateTime<Utc>) -> bool {
+        self.released_at == None
+            && self.entered_at < at
+            && if let Some(did_pay_at) = self.paid_at {
+                did_pay_at < at
+            } else {
+                false
+            }
+    }
+    pub fn is_within_courtesy_period(&self, at: DateTime<Utc>) -> bool {
+        (at - self.entered_at).num_minutes() <= 15
+    }
     /// Create an active ticket, normalizing the plate and generating IDs.
     pub fn issue(vehicle_plate: String, at: DateTime<Utc>) -> Self {
         let plate = vehicle_plate.trim().to_ascii_uppercase();
@@ -45,17 +68,9 @@ impl ParkingTicket {
             status: TicketStatus::Active,
         }
     }
-    pub fn is_within_courtesy_period(&self, _at: DateTime<Utc>) -> bool {
-        false
-    }
-    pub fn calculate_charge(&self, _at: DateTime<Utc>) -> Decimal {
-        Decimal::ZERO
-    }
-    pub fn mark_as_courtesy(&mut self, _at: DateTime<Utc>) {}
-    pub fn mark_as_paid(&mut self, _at: DateTime<Utc>) {}
-    pub fn mark_as_released(&mut self, _at: DateTime<Utc>) {}
-    pub fn can_exit(&self, _at: DateTime<Utc>) -> bool {
-        false
+    pub fn mark_as(&mut self, status: TicketStatus, at: DateTime<Utc>) {
+        self.status = status;
+        self.paid_at = Some(at)
     }
 }
 
@@ -171,6 +186,7 @@ impl Default for CourtesyReport {
 /// Business-rule failures returned by domain and application operations.
 pub enum DomainError {
     TicketNotFound,
+    InvalidStoredData,
     TicketAlreadyReleased,
     TicketNotEligibleForExit,
     InvalidVehiclePlate,

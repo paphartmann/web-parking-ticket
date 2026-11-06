@@ -1,6 +1,6 @@
 # Parking Control
 
-Parking Control is a web application for managing paid parking at shopping centers. It is designed around three workflows: vehicle entry and exit, cashier payment, and management reporting. The backend is organized in layers, separating the domain, application use cases, persistence, and presentation.
+Parking Control is a web application for managing paid parking at shopping centers. It is designed around three workflows: vehicle entry and exit, cashier payment, and management reporting. The backend follows MVC: domain and application rules form the model, Rocket handlers are the controllers, and the TypeScript frontend provides the views.
 
 ## Features
 
@@ -66,10 +66,10 @@ Revenue results contain the report period (`start`, `end`) and `totalReceived`. 
 
 ## Project structure
 
-- `src/domain` contains parking and payment entities, repository contracts, domain errors, and pricing rules.
-- `src/application` defines the barrier, cashier, and management use cases.
-- `src/infrastructure/persistence` contains PostgreSQL persistence and repository implementations.
-- `src/presentation` contains the API and MVC controller contracts.
+- `src/domain.rs` contains parking and payment entities, domain errors, and pricing rules.
+- `src/application.rs` coordinates the barrier, cashier, and management use cases.
+- `src/persistence.rs` contains PostgreSQL storage and repository operations.
+- `src/presentation.rs` contains the HTTP controllers; `src/main.rs` starts the app and registers routes.
 - `frontend` contains TypeScript models, services, controllers, views, and the static entry page.
 
 ## Running locally

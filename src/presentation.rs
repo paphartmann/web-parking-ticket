@@ -1,82 +1,117 @@
-//! Controller facades grouping operations by parking workflow.
-//!
-//! These types provide a presentation-layer boundary for barrier, cashier,
-//! and management actions; the current Rocket routes are declared in
-//! `main.rs`.
+//! Rocket controllers: translate HTTP requests into application operations.
 
-use chrono::NaiveDate;
+use chrono::Utc;
+use rocket::serde::{Deserialize, json::Json};
+use rocket::{State, get, post};
+use uuid::Uuid;
 
-use crate::application::{
-    CalculateCharge, ChargeQuote, ExitValidation, IssueEntryTicket, RegisterPayment, ValidateExit,
-};
-use crate::domain::{CourtesyReport, DomainError, ParkingTicket, Payment, RevenueReport};
+use crate::application::{Application, ChargeQuote, ExitValidation, IssueEntryTicket};
+use crate::domain::{CourtesyReport, ParkingTicket, Payment, RevenueReport};
+use crate::persistence::Repositories;
 
-/// Operations associated with vehicle entry and exit barriers.
-pub struct BarrierController;
-
-impl BarrierController {
-    pub async fn issue_entry_ticket(
-        &self,
-        _request: IssueEntryTicket,
-    ) -> Result<ParkingTicket, DomainError> {
-        Ok(ParkingTicket::default())
-    }
-
-    pub async fn validate_exit(
-        &self,
-        _request: ValidateExit,
-    ) -> Result<ExitValidation, DomainError> {
-        Ok(ExitValidation::default())
-    }
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde", rename_all = "camelCase")]
+pub(crate) struct EntryTicketRequest {
+    vehicle_plate: String,
 }
 
-/// Operations used by the cashier workflow.
-pub struct CashierController;
-
-impl CashierController {
-    pub async fn calculate_charge(
-        &self,
-        _request: CalculateCharge,
-    ) -> Result<ChargeQuote, DomainError> {
-        Ok(ChargeQuote::default())
-    }
-
-    pub async fn register_payment(
-        &self,
-        _request: RegisterPayment,
-    ) -> Result<Payment, DomainError> {
-        Ok(Payment::default())
-    }
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde", rename_all = "camelCase")]
+pub(crate) struct ExitValidationRequest {
+    ticket_code: Option<String>,
+    vehicle_plate: Option<String>,
 }
 
-/// Read-only reporting operations for parking management.
-pub struct ManagementController;
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde", rename_all = "camelCase")]
+pub(crate) struct PaymentRequest {
+    ticket_id: Uuid,
+    amount_received: rust_decimal::Decimal,
+}
 
-impl ManagementController {
-    pub async fn daily_revenue(&self, _day: NaiveDate) -> Result<RevenueReport, DomainError> {
-        Ok(RevenueReport::default())
-    }
+#[post("/api/barrier/entry-tickets", data = "<request>")]
+pub async fn issue_entry_ticket(
+    repositories: &State<Repositories>,
+    request: Json<EntryTicketRequest>,
+) -> Result<Json<ParkingTicket>, rocket::http::Status> {
+    let ticket = Application
+        .issue_entry_ticket(IssueEntryTicket {
+            vehicle_plate: request.vehicle_plate.clone(),
+        })
+        .await
+        .map_err(|_| rocket::http::Status::UnprocessableEntity)?;
+    repositories
+        .save_ticket(&ticket)
+        .await
+        .map_err(|_| rocket::http::Status::InternalServerError)?;
+    Ok(Json(ticket))
+}
 
-    pub async fn monthly_revenue(
-        &self,
-        _year: i32,
-        _month: u32,
-    ) -> Result<RevenueReport, DomainError> {
-        Ok(RevenueReport::default())
-    }
+#[post("/api/barrier/exit-validation", data = "<request>")]
+pub async fn validate_exit(
+    repositories: &State<Repositories>,
+    request: Json<ExitValidationRequest>,
+) -> Json<ExitValidation> {
+    let null_result = Json(ExitValidation {
+        ticket_id: Uuid::nil(),
+        may_open_barrier: false,
+    });
 
-    pub async fn daily_courtesy_count(
-        &self,
-        _day: NaiveDate,
-    ) -> Result<CourtesyReport, DomainError> {
-        Ok(CourtesyReport::default())
-    }
+    let Some(code) = &request.ticket_code else {
+        return null_result;
+    };
 
-    pub async fn monthly_courtesy_count(
-        &self,
-        _year: i32,
-        _month: u32,
-    ) -> Result<CourtesyReport, DomainError> {
-        Ok(CourtesyReport::default())
-    }
+    let Ok(Some(ticket)) = repositories.find_ticket_by_code(&code).await else {
+        return null_result;
+    };
+
+    Json(ExitValidation {
+        ticket_id: ticket.id,
+        may_open_barrier: ticket.can_exit(Utc::now()),
+    })
+}
+
+#[get("/api/cashier/tickets/<ticket_code>/charge")]
+pub async fn calculate_charge(
+    _repositories: &State<Repositories>,
+    ticket_code: &str,
+) -> Json<ChargeQuote> {
+    let _ = ticket_code;
+    Json(ChargeQuote::default())
+}
+
+#[post("/api/cashier/payments", data = "<request>")]
+pub async fn register_payment(
+    _repositories: &State<Repositories>,
+    request: Json<PaymentRequest>,
+) -> Json<Payment> {
+    let _ = request;
+    Json(Payment::default())
+}
+
+#[get("/api/management/reports/revenue?<day>&<year>&<month>")]
+pub async fn revenue_report(
+    _repositories: &State<Repositories>,
+    day: Option<&str>,
+    year: Option<i32>,
+    month: Option<u32>,
+) -> Json<RevenueReport> {
+    let _ = (day, year, month);
+    Json(RevenueReport::default())
+}
+
+#[get("/api/management/reports/courtesy?<day>&<year>&<month>")]
+pub async fn courtesy_report(
+    _repositories: &State<Repositories>,
+    day: Option<&str>,
+    year: Option<i32>,
+    month: Option<u32>,
+) -> Json<CourtesyReport> {
+    let _ = (day, year, month);
+    Json(CourtesyReport::default())
+}
+
+#[get("/health")]
+pub async fn health(_repositories: &State<Repositories>) -> &'static str {
+    "ok"
 }
