@@ -32,7 +32,6 @@ pub mod parking_ticket {
             Relation::Payment.def()
         }
     }
-
 }
 
 pub mod payment {
@@ -67,5 +66,4 @@ pub mod payment {
             Relation::ParkingTicket.def()
         }
     }
-
 }

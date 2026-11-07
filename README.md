@@ -74,6 +74,15 @@ Revenue results contain the report period (`start`, `end`) and `totalReceived`. 
 
 ## Running locally
 
+Install `pre-commit` and Rust's `rustfmt`, then enable the repository hooks:
+
+```sh
+rustup component add rustfmt
+pre-commit install
+```
+
+The pre-commit hooks check Rust formatting and run Clippy.
+
 To run the app with its own PostgreSQL database in Docker, from the repository
 root run:
 

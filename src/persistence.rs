@@ -4,16 +4,11 @@ pub mod entity;
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
-};
+use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::{
-    domain::{
-        DomainError,
-        ParkingTicket, Payment, TicketStatus,
-    },
+    domain::{DomainError, ParkingTicket, Payment, TicketStatus},
     persistence::entity::{parking_ticket, payment},
 };
 
@@ -121,8 +116,7 @@ impl Repositories {
                     false
                 }
             })
-            .count()
-            .into())
+            .count())
     }
 
     pub async fn find_active_ticket_by_plate(

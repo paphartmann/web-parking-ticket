@@ -1,0 +1,14 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: Check Rust formatting
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [rust]
+      - id: cargo-clippy
+        name: Run Rust Clippy
+        entry: cargo clippy --all-targets --all-features -- -D warnings -A dead_code
+        language: system
+        types: [rust]
+        pass_filenames: false

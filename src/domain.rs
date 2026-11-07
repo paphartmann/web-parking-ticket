@@ -43,7 +43,7 @@ impl ParkingTicket {
         }
     }
     pub fn can_exit(&self, at: DateTime<Utc>) -> bool {
-        self.released_at == None
+        self.released_at.is_none()
             && self.entered_at < at
             && if let Some(did_pay_at) = self.paid_at {
                 did_pay_at < at

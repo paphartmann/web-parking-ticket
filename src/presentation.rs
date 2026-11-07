@@ -72,7 +72,7 @@ pub async fn validate_exit(
         return null_result;
     };
 
-    let Ok(Some(ticket)) = repositories.find_ticket_by_code(&code).await else {
+    let Ok(Some(ticket)) = repositories.find_ticket_by_code(code).await else {
         return null_result;
     };
 
