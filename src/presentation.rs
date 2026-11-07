@@ -47,6 +47,17 @@ pub async fn issue_entry_ticket(
     Ok(Json(ticket))
 }
 
+#[get("/api/tickets")]
+pub async fn list_tickets(
+    repositories: &State<Repositories>,
+) -> Result<Json<Vec<ParkingTicket>>, rocket::http::Status> {
+    repositories
+        .list_tickets()
+        .await
+        .map(Json)
+        .map_err(|_| rocket::http::Status::InternalServerError)
+}
+
 #[post("/api/barrier/exit-validation", data = "<request>")]
 pub async fn validate_exit(
     repositories: &State<Repositories>,

@@ -94,6 +94,16 @@ impl Repositories {
 }
 
 impl Repositories {
+    pub async fn list_tickets(&self) -> Result<Vec<ParkingTicket>, DomainError> {
+        entity::parking_ticket::Entity::find()
+            .all(&self.database)
+            .await
+            .map_err(|_| DomainError::TicketNotFound)?
+            .into_iter()
+            .map(ParkingTicket::try_from)
+            .collect()
+    }
+
     pub async fn count_courtesy_between(
         &self,
         _start: DateTime<Utc>,

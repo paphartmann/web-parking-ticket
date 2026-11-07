@@ -36,6 +36,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ParkingTicket'
+  /api/tickets:
+    get:
+      summary: List all parking tickets
+      operationId: listTickets
+      responses:
+        '200':
+          description: Tickets ordered by database retrieval order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParkingTicket'
   /api/barrier/exit-validation:
     post:
       summary: Validate vehicle exit

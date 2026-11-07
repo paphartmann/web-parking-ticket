@@ -23,6 +23,41 @@
           <p>Entrada: <time id="ticket-time"></time></p>
         </section>
       </section>
+      <section aria-labelledby="exit-heading">
+        <h2 id="exit-heading">Validar saída</h2>
+        <form id="exit-form">
+          <label for="exit-ticket-code">Código do ticket</label>
+          <input id="exit-ticket-code" type="text" required />
+          <button type="submit">Validar saída</button>
+        </form>
+        <p id="exit-result" aria-live="polite"></p>
+      </section>
+      <section aria-labelledby="cashier-heading">
+        <h2 id="cashier-heading">Caixa</h2>
+        <form id="charge-form">
+          <label for="charge-ticket-code">Código do ticket</label>
+          <input id="charge-ticket-code" type="text" required />
+          <button type="submit">Calcular cobrança</button>
+        </form>
+        <p id="charge-result" aria-live="polite"></p>
+        <form id="payment-form">
+          <label for="payment-ticket-id">ID do ticket</label>
+          <input id="payment-ticket-id" type="text" required />
+          <label for="payment-amount">Valor recebido (R$)</label>
+          <input id="payment-amount" type="number" min="0" step="0.01" required />
+          <button type="submit">Registrar pagamento</button>
+        </form>
+        <p id="payment-result" aria-live="polite"></p>
+      </section>
+      <section aria-labelledby="tickets-heading">
+        <h2 id="tickets-heading">Tickets</h2>
+        <button id="refresh-tickets" type="button">Atualizar lista</button>
+        <p id="tickets-error" role="alert"></p>
+        <table>
+          <thead><tr><th>Código</th><th>Placa</th><th>Entrada</th><th>Status</th></tr></thead>
+          <tbody id="tickets-body"></tbody>
+        </table>
+      </section>
     </main>
     <script type="module" src="/assets/main.js"></script>
   </body>

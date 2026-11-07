@@ -30,6 +30,7 @@ async fn rocket() -> _ {
             "/",
             routes![
                 presentation::issue_entry_ticket,
+                presentation::list_tickets,
                 presentation::validate_exit,
                 presentation::calculate_charge,
                 presentation::register_payment,
