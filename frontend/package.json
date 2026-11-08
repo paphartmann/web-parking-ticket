@@ -4,11 +4,16 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "tsc && find public/assets -name '*.js' -exec terser --module --compress --mangle --output '{}' -- '{}' \\;",
+    "build": "tsc --noEmit && esbuild src/main.ts --bundle --format=esm --platform=browser --outfile=public/assets/main.js && terser --module --compress --mangle --output public/assets/main.js -- public/assets/main.js",
     "clean": "node -e \"require('node:fs').rmSync('public/assets', { recursive: true, force: true })\""
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.6",
+    "esbuild": "^0.28.2",
     "terser": "^5.39.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
   }
 }

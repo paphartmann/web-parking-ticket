@@ -21,6 +21,8 @@
           <p>Código: <strong id="ticket-code"></strong></p>
           <p>Placa: <span id="ticket-plate"></span></p>
           <p>Entrada: <time id="ticket-time"></time></p>
+          <p>QR do ticket (UUID):</p>
+          <canvas id="ticket-qr" role="img" aria-label="QR code com o UUID do ticket"></canvas>
         </section>
       </section>
       <section aria-labelledby="exit-heading">
@@ -40,6 +42,7 @@
           <button type="submit">Calcular cobrança</button>
         </form>
         <p id="charge-result" aria-live="polite"></p>
+        <p id="cashier-error" role="alert"></p>
         <form id="payment-form">
           <label for="payment-ticket-id">ID do ticket</label>
           <input id="payment-ticket-id" type="text" required />
@@ -57,6 +60,42 @@
           <thead><tr><th>Código</th><th>Placa</th><th>Entrada</th><th>Status</th></tr></thead>
           <tbody id="tickets-body"></tbody>
         </table>
+      </section>
+      <section aria-labelledby="management-heading">
+        <h2 id="management-heading">Relatórios de gestão</h2>
+        <form id="revenue-form">
+          <label for="revenue-period">Receita do mês</label>
+          <input id="revenue-period" type="month" required />
+          <button type="submit">Consultar receita mensal</button>
+        </form>
+        <p id="revenue-result" aria-live="polite"></p>
+        <form id="yearly-revenue-form">
+          <label for="yearly-revenue-period">Receita do ano</label>
+          <input id="yearly-revenue-period" type="number" min="2000" max="2100" step="1" required />
+          <button type="submit">Consultar receita anual</button>
+        </form>
+        <form id="daily-revenue-form">
+          <label for="daily-revenue-period">Receita do dia</label>
+          <input id="daily-revenue-period" type="date" required />
+          <button type="submit">Consultar receita diária</button>
+        </form>
+        <form id="courtesy-form">
+          <label for="courtesy-period">Cortesias do mês</label>
+          <input id="courtesy-period" type="month" required />
+          <button type="submit">Consultar cortesias mensais</button>
+        </form>
+        <p id="courtesy-result" aria-live="polite"></p>
+        <form id="yearly-courtesy-form">
+          <label for="yearly-courtesy-period">Cortesias do ano</label>
+          <input id="yearly-courtesy-period" type="number" min="2000" max="2100" step="1" required />
+          <button type="submit">Consultar cortesias anuais</button>
+        </form>
+        <form id="daily-courtesy-form">
+          <label for="daily-courtesy-period">Cortesias do dia</label>
+          <input id="daily-courtesy-period" type="date" required />
+          <button type="submit">Consultar cortesias diárias</button>
+        </form>
+        <p id="management-error" role="alert"></p>
       </section>
     </main>
     <script type="module" src="/assets/main.js"></script>

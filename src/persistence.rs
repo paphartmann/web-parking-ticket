@@ -101,22 +101,16 @@ impl Repositories {
 
     pub async fn count_courtesy_between(
         &self,
-        _start: DateTime<Utc>,
-        _end: DateTime<Utc>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> Result<usize, DbErr> {
         Ok(entity::parking_ticket::Entity::find()
+            .filter(parking_ticket::Column::EnteredAt.gte(start))
+            .filter(parking_ticket::Column::EnteredAt.lt(end))
+            .filter(parking_ticket::Column::Status.eq("courtesy"))
             .all(&self.database)
             .await?
-            .iter()
-            .map(|pm: &parking_ticket::Model| ParkingTicket::try_from(pm.clone()))
-            .filter(|rp| {
-                if let Ok(p) = rp {
-                    p.status == TicketStatus::Courtesy
-                } else {
-                    false
-                }
-            })
-            .count())
+            .len())
     }
 
     pub async fn find_active_ticket_by_plate(
@@ -125,6 +119,7 @@ impl Repositories {
     ) -> Result<Option<ParkingTicket>, DomainError> {
         let ticket = entity::parking_ticket::Entity::find()
             .filter(entity::parking_ticket::Column::VehiclePlate.eq(plate))
+            .filter(entity::parking_ticket::Column::Status.ne("released"))
             .one(&self.database)
             .await
             .map_err(|_| DomainError::TicketNotFound)?;
@@ -155,8 +150,9 @@ impl Repositories {
     }
 
     pub async fn save_payment(&self, payment: &Payment) -> Result<(), DbErr> {
-        use sea_orm::{ActiveModelTrait, Set};
+        use sea_orm::{ActiveModelTrait, Set, TransactionTrait};
 
+        let transaction = self.database.begin().await?;
         let payment_model = entity::payment::ActiveModel {
             id: Set(payment.id),
             ticket_id: Set(payment.ticket_id),
@@ -164,7 +160,21 @@ impl Repositories {
             paid_at: Set(payment.paid_at.into()),
         };
 
-        payment_model.insert(&self.database).await?;
+        payment_model.insert(&transaction).await?;
+        let ticket = entity::parking_ticket::Entity::find_by_id(payment.ticket_id)
+            .one(&transaction)
+            .await?
+            .ok_or(DbErr::RecordNotFound("parking ticket".to_owned()))?;
+        let mut ticket: entity::parking_ticket::ActiveModel = ticket.into();
+        ticket.paid_at = Set(Some(payment.paid_at.into()));
+        ticket.status = Set(if payment.amount.is_zero() {
+            "courtesy"
+        } else {
+            "paid"
+        }
+        .to_owned());
+        ticket.update(&transaction).await?;
+        transaction.commit().await?;
         Ok(())
     }
 
@@ -201,7 +211,7 @@ impl Repositories {
     ) -> Result<Decimal, DbErr> {
         Ok(entity::payment::Entity::find()
             .filter(payment::Column::PaidAt.gte(start))
-            .filter(payment::Column::PaidAt.lte(end))
+            .filter(payment::Column::PaidAt.lt(end))
             .all(&self.database)
             .await?
             .iter()

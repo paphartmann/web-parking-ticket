@@ -1,13 +1,29 @@
 //! Rocket controllers: translate HTTP requests into application operations.
 
-use chrono::Utc;
+use chrono::{Datelike, NaiveDate, Utc};
 use rocket::serde::{Deserialize, json::Json};
-use rocket::{State, get, post};
+use rocket::{State, get, http, post};
 use uuid::Uuid;
 
-use crate::application::{Application, ChargeQuote, ExitValidation, IssueEntryTicket};
-use crate::domain::{CourtesyReport, ParkingTicket, Payment, RevenueReport};
+use crate::application::{
+    Application, CalculateCharge, ChargeQuote, ExitValidation, IssueEntryTicket, RegisterPayment,
+    ValidateExit,
+};
+use crate::domain::{CourtesyReport, DomainError, ParkingTicket, Payment, RevenueReport};
 use crate::persistence::Repositories;
+
+fn domain_error_status(error: DomainError) -> http::Status {
+    match error {
+        DomainError::TicketNotFound => http::Status::NotFound,
+        DomainError::InvalidStoredData => http::Status::InternalServerError,
+        DomainError::TicketAlreadyReleased | DomainError::TicketNotEligibleForExit => {
+            http::Status::Conflict
+        }
+        DomainError::InvalidVehiclePlate | DomainError::PaymentAmountMismatch => {
+            http::Status::UnprocessableEntity
+        }
+    }
+}
 
 #[derive(Deserialize)]
 #[serde(crate = "rocket::serde", rename_all = "camelCase")]
@@ -33,13 +49,13 @@ pub(crate) struct PaymentRequest {
 pub async fn issue_entry_ticket(
     repositories: &State<Repositories>,
     request: Json<EntryTicketRequest>,
-) -> Result<Json<ParkingTicket>, rocket::http::Status> {
+) -> Result<Json<ParkingTicket>, http::Status> {
     let ticket = Application
         .issue_entry_ticket(IssueEntryTicket {
             vehicle_plate: request.vehicle_plate.clone(),
         })
         .await
-        .map_err(|_| rocket::http::Status::UnprocessableEntity)?;
+        .map_err(domain_error_status)?;
     repositories
         .save_ticket(&ticket)
         .await
@@ -50,7 +66,7 @@ pub async fn issue_entry_ticket(
 #[get("/api/tickets")]
 pub async fn list_tickets(
     repositories: &State<Repositories>,
-) -> Result<Json<Vec<ParkingTicket>>, rocket::http::Status> {
+) -> Result<Json<Vec<ParkingTicket>>, http::Status> {
     repositories
         .list_tickets()
         .await
@@ -62,64 +78,152 @@ pub async fn list_tickets(
 pub async fn validate_exit(
     repositories: &State<Repositories>,
     request: Json<ExitValidationRequest>,
-) -> Json<ExitValidation> {
-    let null_result = Json(ExitValidation {
-        ticket_id: Uuid::nil(),
-        may_open_barrier: false,
-    });
+) -> Result<Json<ExitValidation>, http::Status> {
+    if request.ticket_code.is_none() && request.vehicle_plate.is_none() {
+        return Err(http::Status::BadRequest);
+    }
 
-    let Some(code) = &request.ticket_code else {
-        return null_result;
-    };
-
-    let Ok(Some(ticket)) = repositories.find_ticket_by_code(code).await else {
-        return null_result;
-    };
-
-    Json(ExitValidation {
-        ticket_id: ticket.id,
-        may_open_barrier: ticket.can_exit(Utc::now()),
-    })
+    Application
+        .validate_exit(
+            ValidateExit {
+                ticket_code: request.ticket_code.clone(),
+                vehicle_plate: request.vehicle_plate.clone(),
+                requested_at: Utc::now(),
+            },
+            repositories,
+        )
+        .await
+        .map(Json)
+        .map_err(domain_error_status)
 }
 
 #[get("/api/cashier/tickets/<ticket_code>/charge")]
 pub async fn calculate_charge(
-    _repositories: &State<Repositories>,
+    repositories: &State<Repositories>,
     ticket_code: &str,
-) -> Json<ChargeQuote> {
-    let _ = ticket_code;
-    Json(ChargeQuote::default())
+) -> Result<Json<ChargeQuote>, http::Status> {
+    let result = Application
+        .calculate_charge(
+            CalculateCharge {
+                ticket_code: ticket_code.to_string(),
+                calculated_at: Utc::now(),
+            },
+            repositories,
+        )
+        .await;
+
+    result.map(Json).map_err(domain_error_status)
 }
 
 #[post("/api/cashier/payments", data = "<request>")]
 pub async fn register_payment(
-    _repositories: &State<Repositories>,
+    repositories: &State<Repositories>,
     request: Json<PaymentRequest>,
-) -> Json<Payment> {
-    let _ = request;
-    Json(Payment::default())
+) -> Result<Json<Payment>, http::Status> {
+    Application
+        .register_payment(
+            RegisterPayment {
+                ticket_id: request.ticket_id,
+                amount_received: request.amount_received,
+                paid_at: Utc::now(),
+            },
+            repositories,
+        )
+        .await
+        .map(Json)
+        .map_err(domain_error_status)
 }
 
-#[get("/api/management/reports/revenue?<day>&<year>&<month>")]
+#[get("/api/management/reports/revenue?<day>&<month>&<year>")]
 pub async fn revenue_report(
-    _repositories: &State<Repositories>,
+    repositories: &State<Repositories>,
     day: Option<&str>,
-    year: Option<i32>,
     month: Option<u32>,
-) -> Json<RevenueReport> {
-    let _ = (day, year, month);
-    Json(RevenueReport::default())
+    year: Option<i32>,
+) -> Result<Json<RevenueReport>, http::Status> {
+    let report = match day {
+        Some(day) => {
+            let date = parse_report_day(day)?;
+            Application
+                .revenue_for_day(date.year(), date.month(), date.day(), repositories)
+                .await
+        }
+        None if month.is_some() => {
+            let Some(year) = year else {
+                return Err(http::Status::BadRequest);
+            };
+            Application
+                .revenue_for_month(year, month.unwrap(), repositories)
+                .await
+        }
+        None => {
+            let Some(year) = year else {
+                return Err(http::Status::BadRequest);
+            };
+            Application.revenue_for_year(year, repositories).await
+        }
+    };
+    report.map(Json).map_err(domain_error_status)
 }
 
 #[get("/api/management/reports/courtesy?<day>&<year>&<month>")]
 pub async fn courtesy_report(
-    _repositories: &State<Repositories>,
+    repositories: &State<Repositories>,
     day: Option<&str>,
     year: Option<i32>,
     month: Option<u32>,
-) -> Json<CourtesyReport> {
-    let _ = (day, year, month);
-    Json(CourtesyReport::default())
+) -> Result<Json<CourtesyReport>, http::Status> {
+    let report = match day {
+        Some(day) => {
+            let date = parse_report_day(day)?;
+            Application
+                .courtesy_count_for_day(date.year(), date.month(), date.day(), repositories)
+                .await
+        }
+        None if month.is_some() => {
+            let Some(year) = year else {
+                return Err(http::Status::BadRequest);
+            };
+            Application
+                .courtesy_count_for_month(year, month.unwrap(), repositories)
+                .await
+        }
+        None => {
+            let Some(year) = year else {
+                return Err(http::Status::BadRequest);
+            };
+            Application
+                .courtesy_count_for_year(year, repositories)
+                .await
+        }
+    };
+
+    report.map(Json).map_err(domain_error_status)
+}
+
+fn parse_report_day(day: &str) -> Result<NaiveDate, http::Status> {
+    NaiveDate::parse_from_str(day, "%Y-%m-%d").map_err(|_| http::Status::BadRequest)
+}
+
+#[cfg(test)]
+mod report_query_tests {
+    use super::parse_report_day;
+    use chrono::NaiveDate;
+    use rocket::http::Status;
+
+    #[test]
+    fn parses_iso_report_day() {
+        assert_eq!(
+            parse_report_day("2024-02-29"),
+            Ok(NaiveDate::from_ymd_opt(2024, 2, 29).unwrap())
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_report_day() {
+        assert_eq!(parse_report_day("2025-02-30"), Err(Status::BadRequest));
+        assert_eq!(parse_report_day("not-a-date"), Err(Status::BadRequest));
+    }
 }
 
 #[get("/health")]

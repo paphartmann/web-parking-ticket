@@ -38,7 +38,8 @@ impl ParkingTicket {
         } else if minutes <= 60 {
             dec!(15)
         } else {
-            let hours = Decimal::from(minutes / 60);
+            let extra_minutes = minutes - 60;
+            let hours = Decimal::from((extra_minutes + 59) / 60);
             dec!(15) + (dec!(4.5) * hours)
         }
     }
@@ -104,6 +105,51 @@ mod tests {
 
         assert_ne!(first.id, second.id);
         assert_ne!(first.code, second.code);
+    }
+
+    #[test]
+    fn charge_applies_courtesy_and_hour_portions() {
+        use chrono::Duration;
+        use rust_decimal::dec;
+        let entered_at = Utc.with_ymd_and_hms(2025, 3, 8, 12, 0, 0).unwrap();
+        let ticket = ParkingTicket::issue("ABC1234".to_owned(), entered_at);
+        assert_eq!(
+            ticket.calculate_charge(entered_at + Duration::minutes(15)),
+            dec!(0)
+        );
+        assert_eq!(
+            ticket.calculate_charge(entered_at + Duration::minutes(16)),
+            dec!(15)
+        );
+        assert_eq!(
+            ticket.calculate_charge(entered_at + Duration::minutes(60)),
+            dec!(15)
+        );
+        assert_eq!(
+            ticket.calculate_charge(entered_at + Duration::minutes(61)),
+            dec!(19.5)
+        );
+        assert_eq!(
+            ticket.calculate_charge(entered_at + Duration::minutes(120)),
+            dec!(19.5)
+        );
+        assert_eq!(
+            ticket.calculate_charge(entered_at + Duration::minutes(121)),
+            dec!(24)
+        );
+    }
+
+    #[test]
+    fn exit_requires_payment_after_entry_and_ticket_not_released() {
+        use chrono::Duration;
+        let entered_at = Utc.with_ymd_and_hms(2025, 3, 8, 12, 0, 0).unwrap();
+        let mut ticket = ParkingTicket::issue("ABC1234".to_owned(), entered_at);
+        let paid_at = entered_at + Duration::minutes(20);
+        assert!(!ticket.can_exit(paid_at));
+        ticket.paid_at = Some(paid_at);
+        assert!(ticket.can_exit(paid_at + Duration::seconds(1)));
+        ticket.released_at = Some(paid_at + Duration::seconds(2));
+        assert!(!ticket.can_exit(paid_at + Duration::seconds(3)));
     }
 }
 
@@ -184,6 +230,7 @@ impl Default for CourtesyReport {
 }
 
 /// Business-rule failures returned by domain and application operations.
+#[derive(Debug)]
 pub enum DomainError {
     TicketNotFound,
     InvalidStoredData,
