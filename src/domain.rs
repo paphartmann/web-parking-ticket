@@ -69,10 +69,6 @@ impl ParkingTicket {
             status: TicketStatus::Active,
         }
     }
-    pub fn mark_as(&mut self, status: TicketStatus, at: DateTime<Utc>) {
-        self.status = status;
-        self.paid_at = Some(at)
-    }
 }
 
 #[cfg(test)]
