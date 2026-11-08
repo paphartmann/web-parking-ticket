@@ -12,10 +12,10 @@ use crate::{
     persistence::entity::{parking_ticket, payment},
 };
 
-impl TryFrom<entity::parking_ticket::Model> for ParkingTicket {
+impl TryFrom<parking_ticket::Model> for ParkingTicket {
     type Error = DomainError;
 
-    fn try_from(model: entity::parking_ticket::Model) -> Result<Self, Self::Error> {
+    fn try_from(model: parking_ticket::Model) -> Result<Self, Self::Error> {
         let status = match model.status.as_str() {
             "active" => TicketStatus::Active,
             "courtesy" => TicketStatus::Courtesy,
@@ -36,8 +36,8 @@ impl TryFrom<entity::parking_ticket::Model> for ParkingTicket {
     }
 }
 
-impl From<entity::payment::Model> for Payment {
-    fn from(model: entity::payment::Model) -> Self {
+impl From<payment::Model> for Payment {
+    fn from(model: payment::Model) -> Self {
         Self {
             id: model.id,
             ticket_id: model.ticket_id,
@@ -50,7 +50,7 @@ impl From<entity::payment::Model> for Payment {
 /// Database-backed operations used to store and retrieve domain records.
 pub struct Repositories {
     /// Shared SeaORM connection used by repository methods.
-    pub database: DatabaseConnection,
+    db: DatabaseConnection,
 }
 
 impl Repositories {
@@ -84,14 +84,14 @@ impl Repositories {
             ON CONFLICT (id) DO NOTHING;",
         )
         .await?;
-        Ok(Self { database })
+        Ok(Self { db: database })
     }
 }
 
 impl Repositories {
     pub async fn list_tickets(&self) -> Result<Vec<ParkingTicket>, DomainError> {
-        entity::parking_ticket::Entity::find()
-            .all(&self.database)
+        parking_ticket::Entity::find()
+            .all(&self.db)
             .await
             .map_err(|_| DomainError::TicketNotFound)?
             .into_iter()
@@ -104,11 +104,11 @@ impl Repositories {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<usize, DbErr> {
-        Ok(entity::parking_ticket::Entity::find()
+        Ok(parking_ticket::Entity::find()
             .filter(parking_ticket::Column::EnteredAt.gte(start))
             .filter(parking_ticket::Column::EnteredAt.lt(end))
             .filter(parking_ticket::Column::Status.eq("courtesy"))
-            .all(&self.database)
+            .all(&self.db)
             .await?
             .len())
     }
@@ -117,55 +117,55 @@ impl Repositories {
         &self,
         plate: &str,
     ) -> Result<Option<ParkingTicket>, DomainError> {
-        let ticket = entity::parking_ticket::Entity::find()
-            .filter(entity::parking_ticket::Column::VehiclePlate.eq(plate))
-            .filter(entity::parking_ticket::Column::Status.ne("released"))
-            .one(&self.database)
+        parking_ticket::Entity::find()
+            .filter(parking_ticket::Column::VehiclePlate.eq(plate))
+            .filter(parking_ticket::Column::Status.ne("released"))
+            .one(&self.db)
             .await
-            .map_err(|_| DomainError::TicketNotFound)?;
-
-        ticket.map(ParkingTicket::try_from).transpose()
+            .map_err(|_| DomainError::TicketNotFound)?
+            .map(ParkingTicket::try_from)
+            .transpose()
     }
 
     pub async fn find_ticket_by_code(
         &self,
         code: &str,
     ) -> Result<Option<ParkingTicket>, DomainError> {
-        let ticket = entity::parking_ticket::Entity::find()
-            .filter(entity::parking_ticket::Column::Code.eq(code))
-            .one(&self.database)
+        parking_ticket::Entity::find()
+            .filter(parking_ticket::Column::Code.eq(code))
+            .one(&self.db)
             .await
-            .map_err(|_| DomainError::TicketNotFound)?;
-
-        ticket.map(ParkingTicket::try_from).transpose()
+            .map_err(|_| DomainError::TicketNotFound)?
+            .map(ParkingTicket::try_from)
+            .transpose()
     }
 
     pub async fn find_ticket_by_id(&self, id: Uuid) -> Result<Option<ParkingTicket>, DomainError> {
-        let ticket = entity::parking_ticket::Entity::find_by_id(id)
-            .one(&self.database)
+        parking_ticket::Entity::find_by_id(id)
+            .one(&self.db)
             .await
-            .map_err(|_| DomainError::TicketNotFound)?;
-
-        ticket.map(ParkingTicket::try_from).transpose()
+            .map_err(|_| DomainError::TicketNotFound)?
+            .map(ParkingTicket::try_from)
+            .transpose()
     }
 
     pub async fn save_payment(&self, payment: &Payment) -> Result<(), DbErr> {
         use sea_orm::{ActiveModelTrait, Set, TransactionTrait};
 
-        let transaction = self.database.begin().await?;
-        let payment_model = entity::payment::ActiveModel {
+        let transaction = self.db.begin().await?;
+        let payment_model = payment::ActiveModel {
             id: Set(payment.id),
             ticket_id: Set(payment.ticket_id),
             amount: Set(payment.amount),
             paid_at: Set(payment.paid_at.into()),
         };
-
         payment_model.insert(&transaction).await?;
-        let ticket = entity::parking_ticket::Entity::find_by_id(payment.ticket_id)
+
+        let ticket = parking_ticket::Entity::find_by_id(payment.ticket_id)
             .one(&transaction)
             .await?
             .ok_or(DbErr::RecordNotFound("parking ticket".to_owned()))?;
-        let mut ticket: entity::parking_ticket::ActiveModel = ticket.into();
+        let mut ticket: parking_ticket::ActiveModel = ticket.into();
         ticket.paid_at = Set(Some(payment.paid_at.into()));
         ticket.status = Set(if payment.amount.is_zero() {
             "courtesy"
@@ -181,7 +181,7 @@ impl Repositories {
     pub async fn save_ticket(&self, ticket: &ParkingTicket) -> Result<(), DomainError> {
         use sea_orm::{ActiveModelTrait, Set};
 
-        let ticket_model = entity::parking_ticket::ActiveModel {
+        let ticket_model = parking_ticket::ActiveModel {
             id: Set(ticket.id),
             code: Set(ticket.code.clone()),
             vehicle_plate: Set(ticket.vehicle_plate.clone()),
@@ -198,7 +198,7 @@ impl Repositories {
         };
 
         ticket_model
-            .insert(&self.database)
+            .insert(&self.db)
             .await
             .map_err(|_| DomainError::TicketNotFound)?;
         Ok(())
@@ -209,13 +209,13 @@ impl Repositories {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<Decimal, DbErr> {
-        Ok(entity::payment::Entity::find()
+        Ok(payment::Entity::find()
             .filter(payment::Column::PaidAt.gte(start))
             .filter(payment::Column::PaidAt.lt(end))
-            .all(&self.database)
+            .all(&self.db)
             .await?
-            .iter()
-            .map(|m| m.amount)
+            .into_iter()
+            .map(|pm| pm.amount)
             .sum())
     }
 }
