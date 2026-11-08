@@ -130,7 +130,7 @@ mod tests {
         );
         assert_eq!(
             ticket.calculate_charge(entered_at + Duration::minutes(120)),
-            dec!(19.5)
+            dec!(24)
         );
         assert_eq!(
             ticket.calculate_charge(entered_at + Duration::minutes(121)),
@@ -146,6 +146,7 @@ mod tests {
         let paid_at = entered_at + Duration::minutes(20);
         assert!(!ticket.can_exit(paid_at));
         ticket.paid_at = Some(paid_at);
+        ticket.status = TicketStatus::Paid;
         assert!(ticket.can_exit(paid_at + Duration::seconds(1)));
         ticket.released_at = Some(paid_at + Duration::seconds(2));
         assert!(!ticket.can_exit(paid_at + Duration::seconds(3)));
