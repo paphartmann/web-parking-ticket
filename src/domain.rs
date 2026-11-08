@@ -38,13 +38,14 @@ impl ParkingTicket {
         } else if minutes <= 60 {
             dec!(15)
         } else {
-            let extra_minutes = minutes - 60;
-            let hours = Decimal::from((extra_minutes + 59) / 60);
+            let hours = Decimal::from(minutes / 60);
             dec!(15) + (dec!(4.5) * hours)
         }
     }
+
     pub fn can_exit(&self, at: DateTime<Utc>) -> bool {
-        self.released_at.is_none()
+        matches!(self.status, TicketStatus::Paid | TicketStatus::Courtesy)
+            && self.released_at.is_none()
             && self.entered_at < at
             && if let Some(did_pay_at) = self.paid_at {
                 did_pay_at < at
@@ -52,9 +53,11 @@ impl ParkingTicket {
                 false
             }
     }
+
     pub fn is_within_courtesy_period(&self, at: DateTime<Utc>) -> bool {
         (at - self.entered_at).num_minutes() <= 15
     }
+
     /// Create an active ticket, normalizing the plate and generating IDs.
     pub fn issue(vehicle_plate: String, at: DateTime<Utc>) -> Self {
         let plate = vehicle_plate.trim().to_ascii_uppercase();
@@ -149,20 +152,6 @@ mod tests {
     }
 }
 
-impl Default for ParkingTicket {
-    fn default() -> Self {
-        Self {
-            id: Uuid::nil(),
-            code: String::new(),
-            vehicle_plate: String::new(),
-            entered_at: Utc::now(),
-            paid_at: None,
-            released_at: None,
-            status: TicketStatus::Active,
-        }
-    }
-}
-
 /// A recorded amount received for a parking ticket.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -174,17 +163,6 @@ pub struct Payment {
     pub paid_at: DateTime<Utc>,
 }
 
-impl Default for Payment {
-    fn default() -> Self {
-        Self {
-            id: Uuid::nil(),
-            ticket_id: Uuid::nil(),
-            amount: Decimal::ZERO,
-            paid_at: Utc::now(),
-        }
-    }
-}
-
 /// Revenue total over the reported time interval.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -192,17 +170,6 @@ pub struct RevenueReport {
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
     pub total_received: Decimal,
-}
-
-impl Default for RevenueReport {
-    fn default() -> Self {
-        let now = Utc::now();
-        Self {
-            start: now,
-            end: now,
-            total_received: Decimal::ZERO,
-        }
-    }
 }
 
 /// Count of tickets granted courtesy over the reported time interval.
@@ -214,19 +181,7 @@ pub struct CourtesyReport {
     pub ticket_count: u64,
 }
 
-impl Default for CourtesyReport {
-    fn default() -> Self {
-        let now = Utc::now();
-        Self {
-            start: now,
-            end: now,
-            ticket_count: 0,
-        }
-    }
-}
-
 /// Business-rule failures returned by domain and application operations.
-#[derive(Debug)]
 pub enum DomainError {
     TicketNotFound,
     InvalidStoredData,

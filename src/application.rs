@@ -35,15 +35,6 @@ pub struct ExitValidation {
     pub may_open_barrier: bool,
 }
 
-impl Default for ExitValidation {
-    fn default() -> Self {
-        Self {
-            ticket_id: Uuid::nil(),
-            may_open_barrier: false,
-        }
-    }
-}
-
 /// Input for calculating a cashier quote at a specific instant.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,16 +50,6 @@ pub struct ChargeQuote {
     pub ticket_id: Uuid,
     pub amount: Decimal,
     pub courtesy: bool,
-}
-
-impl Default for ChargeQuote {
-    fn default() -> Self {
-        Self {
-            ticket_id: Uuid::nil(),
-            amount: Decimal::ZERO,
-            courtesy: false,
-        }
-    }
 }
 
 /// Input required to record a payment against a ticket.
@@ -183,6 +164,7 @@ impl Application {
         if ticket.status == TicketStatus::Paid || ticket.paid_at.is_some() {
             return Err(DomainError::TicketNotEligibleForExit);
         }
+
         let expected = if ticket.is_within_courtesy_period(request.paid_at) {
             Decimal::ZERO
         } else {
@@ -191,6 +173,7 @@ impl Application {
         if request.amount_received != expected {
             return Err(DomainError::PaymentAmountMismatch);
         }
+
         let payment = Payment {
             id: Uuid::new_v4(),
             ticket_id: ticket.id,
@@ -273,6 +256,7 @@ impl Application {
             None
         }
         .ok_or(DomainError::TicketNotFound)?;
+
         Ok(ExitValidation {
             ticket_id: ticket.id,
             may_open_barrier: ticket.can_exit(request.requested_at),
@@ -379,14 +363,20 @@ mod tests {
     #[test]
     fn day_report_bounds_are_utc_midnight_and_exclusive_next_day() {
         let day = NaiveDate::from_ymd_opt(2024, 2, 29).unwrap();
-        let (start, end) = day_bounds(day).unwrap();
+        let (start, end) = match day_bounds(day) {
+            Ok(bounds) => bounds,
+            Err(_) => panic!("a valid date should have report bounds"),
+        };
         assert_eq!(start, Utc.with_ymd_and_hms(2024, 2, 29, 0, 0, 0).unwrap());
         assert_eq!(end, Utc.with_ymd_and_hms(2024, 3, 1, 0, 0, 0).unwrap());
     }
 
     #[test]
     fn month_and_year_report_bounds_cover_full_periods() {
-        let (month_start, month_end) = month_bounds(2024, 2).unwrap();
+        let (month_start, month_end) = match month_bounds(2024, 2) {
+            Ok(bounds) => bounds,
+            Err(_) => panic!("a valid month should have report bounds"),
+        };
         assert_eq!(
             month_start,
             Utc.with_ymd_and_hms(2024, 2, 1, 0, 0, 0).unwrap()
@@ -396,7 +386,10 @@ mod tests {
             Utc.with_ymd_and_hms(2024, 3, 1, 0, 0, 0).unwrap()
         );
 
-        let (year_start, year_end) = year_bounds(2024).unwrap();
+        let (year_start, year_end) = match year_bounds(2024) {
+            Ok(bounds) => bounds,
+            Err(_) => panic!("a valid year should have report bounds"),
+        };
         assert_eq!(
             year_start,
             Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap()

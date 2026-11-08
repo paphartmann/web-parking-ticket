@@ -3,6 +3,7 @@
 use chrono::{Datelike, NaiveDate, Utc};
 use rocket::serde::{Deserialize, json::Json};
 use rocket::{State, get, http, post};
+use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::application::{
@@ -42,7 +43,7 @@ pub(crate) struct ExitValidationRequest {
 #[serde(crate = "rocket::serde", rename_all = "camelCase")]
 pub(crate) struct PaymentRequest {
     ticket_id: Uuid,
-    amount_received: rust_decimal::Decimal,
+    amount_received: Decimal,
 }
 
 #[post("/api/barrier/entry-tickets", data = "<request>")]
@@ -56,10 +57,12 @@ pub async fn issue_entry_ticket(
         })
         .await
         .map_err(domain_error_status)?;
+
     repositories
         .save_ticket(&ticket)
         .await
         .map_err(|_| rocket::http::Status::InternalServerError)?;
+
     Ok(Json(ticket))
 }
 
