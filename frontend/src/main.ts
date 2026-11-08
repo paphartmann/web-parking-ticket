@@ -95,7 +95,6 @@ chargeForm.addEventListener("submit", async (event) => {
 
 document.querySelector<HTMLFormElement>("#payment-form")!.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const message = document.querySelector<HTMLElement>("#payment-result")!;
   try {
     await cashier.registerPayment(
       document.querySelector<HTMLInputElement>("#payment-ticket-id")!.value,

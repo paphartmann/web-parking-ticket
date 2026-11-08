@@ -1,0 +1,54 @@
+name: Caido CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: '0 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  dast:
+    name: Start Caido in CI
+    # GitHub does not expose repository secrets to pull requests from forks.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    services:
+      caido:
+        image: caido/caido:latest
+        ports:
+          - 9090:8080
+        env:
+          CAIDO_TOKEN: ${{ secrets.CAIDO_TOKEN }}
+        options: >-
+          --add-host=host.docker.internal:host-gateway
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Start application and database
+        run: |
+          docker compose up --build --detach
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8080/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs app
+          exit 1
+      - name: Wait for Caido
+        run: |
+          for attempt in {1..60}; do
+            if curl --silent --output /dev/null --max-time 2 http://127.0.0.1:9090/; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Stop application and database
+        if: always()
+        run: docker compose down --volumes --remove-orphans

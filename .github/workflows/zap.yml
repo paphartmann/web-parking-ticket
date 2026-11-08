@@ -16,7 +16,7 @@ jobs:
     name: Full web application scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Start application and database
         run: |
           docker compose up --build --detach
@@ -35,6 +35,7 @@ jobs:
           cmd_options: '-j --client-spider'
           fail_action: false
           allow_issue_writing: false
+          artifact_name: zap_full_scan
       - name: Stop application and database
         if: always()
         run: docker compose down --volumes --remove-orphans
@@ -43,7 +44,7 @@ jobs:
     name: API scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Start application and database
         run: |
           docker compose up --build --detach
@@ -62,6 +63,7 @@ jobs:
           format: openapi
           fail_action: false
           allow_issue_writing: false
+          artifact_name: zap_api_scan
       - name: Stop application and database
         if: always()
         run: docker compose down --volumes --remove-orphans
