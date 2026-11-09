@@ -38,8 +38,8 @@ impl ParkingTicket {
         } else if minutes <= 60 {
             dec!(15)
         } else {
-            let hours = Decimal::from(minutes / 60);
-            dec!(15) + (dec!(4.5) * hours)
+            let additional_hours = (minutes - 1) / 60;
+            dec!(15) + (dec!(4.5) * Decimal::from(additional_hours))
         }
     }
 
@@ -130,7 +130,7 @@ mod tests {
         );
         assert_eq!(
             ticket.calculate_charge(entered_at + Duration::minutes(120)),
-            dec!(24)
+            dec!(19.5)
         );
         assert_eq!(
             ticket.calculate_charge(entered_at + Duration::minutes(121)),

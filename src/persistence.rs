@@ -93,7 +93,7 @@ impl Repositories {
         parking_ticket::Entity::find()
             .all(&self.db)
             .await
-            .map_err(|_| DomainError::TicketNotFound)?
+            .map_err(|_| DomainError::InvalidStoredData)?
             .into_iter()
             .map(ParkingTicket::try_from)
             .collect()
@@ -122,7 +122,7 @@ impl Repositories {
             .filter(parking_ticket::Column::Status.ne("released"))
             .one(&self.db)
             .await
-            .map_err(|_| DomainError::TicketNotFound)?
+            .map_err(|_| DomainError::InvalidStoredData)?
             .map(ParkingTicket::try_from)
             .transpose()
     }
@@ -135,7 +135,7 @@ impl Repositories {
             .filter(parking_ticket::Column::Code.eq(code))
             .one(&self.db)
             .await
-            .map_err(|_| DomainError::TicketNotFound)?
+            .map_err(|_| DomainError::InvalidStoredData)?
             .map(ParkingTicket::try_from)
             .transpose()
     }
@@ -144,7 +144,7 @@ impl Repositories {
         parking_ticket::Entity::find_by_id(id)
             .one(&self.db)
             .await
-            .map_err(|_| DomainError::TicketNotFound)?
+            .map_err(|_| DomainError::InvalidStoredData)?
             .map(ParkingTicket::try_from)
             .transpose()
     }
