@@ -67,6 +67,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExitValidation'
+  /api/barrier/open_gate:
+    post:
+      summary: Open the exit barrier for an eligible ticket
+      operationId: openGate
+      description: Validates the ticket and opens the barrier when exit requirements are met.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExitValidationRequest'
+      responses:
+        '200':
+          description: Ticket ID for which the barrier was opened
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
   /api/cashier/tickets/{ticketCode}/charge:
     get:
       summary: Calculate the ticket charge
@@ -103,9 +122,9 @@ paths:
                 $ref: '#/components/schemas/Payment'
   /api/management/reports/revenue:
     get:
-      summary: Get revenue for a day or month
+      summary: Get revenue for a day, month, or year
       operationId: getRevenueReport
-      description: Supply either day, or both year and month.
+      description: Supply day, both year and month, or year alone.
       parameters:
         - name: day
           in: query
@@ -134,9 +153,9 @@ paths:
                 $ref: '#/components/schemas/RevenueReport'
   /api/management/reports/courtesy:
     get:
-      summary: Count courtesy tickets for a day or month
+      summary: Count courtesy tickets for a day, month, or year
       operationId: getCourtesyReport
-      description: Supply either day, or both year and month.
+      description: Supply day, both year and month, or year alone.
       parameters:
         - name: day
           in: query
