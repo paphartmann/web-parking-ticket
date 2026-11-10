@@ -4,6 +4,7 @@ pub mod entity;
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
+use sea_orm::{ActiveModelTrait, Set, TransactionTrait};
 use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
@@ -150,8 +151,6 @@ impl Repositories {
     }
 
     pub async fn save_payment(&self, payment: &Payment) -> Result<(), DbErr> {
-        use sea_orm::{ActiveModelTrait, Set, TransactionTrait};
-
         let transaction = self.db.begin().await?;
         let payment_model = payment::ActiveModel {
             id: Set(payment.id),
@@ -179,8 +178,6 @@ impl Repositories {
     }
 
     pub async fn save_ticket(&self, ticket: &ParkingTicket) -> Result<(), DomainError> {
-        use sea_orm::{ActiveModelTrait, Set};
-
         let ticket_model = parking_ticket::ActiveModel {
             id: Set(ticket.id),
             code: Set(ticket.code.clone()),
@@ -189,10 +186,10 @@ impl Repositories {
             paid_at: Set(ticket.paid_at.map(Into::into)),
             released_at: Set(ticket.released_at.map(Into::into)),
             status: Set(match &ticket.status {
-                crate::domain::TicketStatus::Active => "active",
-                crate::domain::TicketStatus::Courtesy => "courtesy",
-                crate::domain::TicketStatus::Paid => "paid",
-                crate::domain::TicketStatus::Released => "released",
+                TicketStatus::Active => "active",
+                TicketStatus::Courtesy => "courtesy",
+                TicketStatus::Paid => "paid",
+                TicketStatus::Released => "released",
             }
             .to_owned()),
         };
@@ -201,6 +198,23 @@ impl Repositories {
             .insert(&self.db)
             .await
             .map_err(|_| DomainError::TicketNotFound)?;
+        Ok(())
+    }
+
+    pub async fn mark_as_released(
+        &self,
+        ticket: &ParkingTicket,
+        at: DateTime<Utc>,
+    ) -> Result<(), DbErr> {
+        let ticket_model = parking_ticket::Entity::find_by_id(ticket.id)
+            .one(&self.db)
+            .await?
+            .ok_or(DbErr::RecordNotFound("parking ticket".to_owned()))?;
+        let mut ticket_model: parking_ticket::ActiveModel = ticket_model.into();
+        ticket_model.released_at = Set(Some(at.into()));
+        ticket_model.status = Set("released".to_owned());
+
+        ticket_model.update(&self.db).await?;
         Ok(())
     }
 

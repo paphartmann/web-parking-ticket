@@ -245,6 +245,7 @@ impl Application {
         &self,
         request: ValidateExit,
         repositories: &Repositories,
+        open_gate: bool,
     ) -> Result<ExitValidation, DomainError> {
         let ticket = if let Some(code) = request.ticket_code.as_deref() {
             repositories.find_ticket_by_code(code).await?
@@ -256,6 +257,13 @@ impl Application {
             None
         }
         .ok_or(DomainError::TicketNotFound)?;
+
+        if open_gate {
+            repositories
+                .mark_as_released(&ticket, request.requested_at)
+                .await
+                .map_err(|_| DomainError::InvalidStoredData)?;
+        }
 
         Ok(ExitValidation {
             ticket_id: ticket.id,

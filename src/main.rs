@@ -45,6 +45,7 @@ async fn rocket() -> _ {
                 presentation::register_payment,
                 presentation::revenue_report,
                 presentation::courtesy_report,
+                presentation::open_gate,
                 presentation::health
             ],
         )

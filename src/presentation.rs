@@ -94,9 +94,34 @@ pub async fn validate_exit(
                 requested_at: Utc::now(),
             },
             repositories,
+            false,
         )
         .await
         .map(Json)
+        .map_err(domain_error_status)
+}
+
+#[post("/api/barrier/open_gate", data = "<request>")]
+pub async fn open_gate(
+    repositories: &State<Repositories>,
+    request: Json<ExitValidationRequest>,
+) -> Result<Json<Uuid>, http::Status> {
+    if request.ticket_code.is_none() && request.vehicle_plate.is_none() {
+        return Err(http::Status::BadRequest);
+    }
+
+    Application
+        .validate_exit(
+            ValidateExit {
+                ticket_code: request.ticket_code.clone(),
+                vehicle_plate: request.vehicle_plate.clone(),
+                requested_at: Utc::now(),
+            },
+            repositories,
+            true,
+        )
+        .await
+        .map(|ev| Json(ev.ticket_id))
         .map_err(domain_error_status)
 }
 

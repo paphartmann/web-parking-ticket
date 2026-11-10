@@ -8,7 +8,7 @@ repos:
         types: [rust]
       - id: cargo-clippy
         name: Run Rust Clippy
-        entry: cargo clippy --all-targets --all-features --
+        entry: cargo clippy --all-targets --all-features -- -D warnings
         language: system
         types: [rust]
         pass_filenames: false

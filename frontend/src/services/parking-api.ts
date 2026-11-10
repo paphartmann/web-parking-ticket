@@ -69,6 +69,16 @@ export class ParkingApi {
     return response.json() as Promise<ExitValidationResponse>;
   }
 
+  async openGate(request: ValidateExitRequest): Promise<string> {
+    const response = await fetch("/api/barrier/open_gate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) throw new Error("Não foi possível abrir a cancela.");
+    return response.json() as Promise<string>;
+  }
+
   async calculateCharge(ticketCode: string): Promise<ChargeQuoteResponse> {
     const response = await fetch(`/api/cashier/tickets/${encodeURIComponent(ticketCode)}/charge`);
     if (!response.ok) throw new Error("Não foi possível calcular o valor do ticket.");

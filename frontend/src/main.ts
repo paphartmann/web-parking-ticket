@@ -71,11 +71,21 @@ exitForm.addEventListener("submit", async (event) => {
   const code = document.querySelector<HTMLInputElement>("#exit-ticket-code")!.value.trim();
   output.textContent = "Validando…";
   try {
-    const result = await api.validateExit({ ticketCode: code });
-    output.textContent = result.mayOpenBarrier ? "Saída autorizada." : "Saída não autorizada. Verifique o ticket e o pagamento.";
-    output.setAttribute("data-authorized", String(result.mayOpenBarrier));
+    const request = { ticketCode: code };
+    const validation = await api.validateExit(request);
+    if (!validation.mayOpenBarrier) {
+      output.textContent = "Saída não autorizada. Verifique o ticket e o pagamento.";
+      output.setAttribute("data-authorized", "false");
+      return;
+    }
+
+    await api.openGate(request);
+    output.textContent = "Saída autorizada. Cancela aberta.";
+    output.setAttribute("data-authorized", "true");
+    await renderTickets();
   } catch (cause) {
     output.textContent = cause instanceof Error ? cause.message : "Ocorreu um erro inesperado.";
+    output.setAttribute("data-authorized", "false");
   }
 });
 
