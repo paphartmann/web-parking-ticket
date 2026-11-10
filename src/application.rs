@@ -258,7 +258,7 @@ impl Application {
         }
         .ok_or(DomainError::TicketNotFound)?;
 
-        if open_gate {
+        if open_gate && ticket.can_exit(request.requested_at) {
             repositories
                 .mark_as_released(&ticket, request.requested_at)
                 .await
