@@ -258,11 +258,15 @@ impl Application {
         }
         .ok_or(DomainError::TicketNotFound)?;
 
-        if open_gate && ticket.can_exit(request.requested_at) {
-            repositories
-                .mark_as_released(&ticket, request.requested_at)
-                .await
-                .map_err(|_| DomainError::InvalidStoredData)?;
+        if open_gate {
+            if ticket.can_exit(request.requested_at) {
+                repositories
+                    .mark_as_released(&ticket, request.requested_at)
+                    .await
+                    .map_err(|_| DomainError::InvalidStoredData)?;
+            } else {
+                return Err(DomainError::TicketNotEligibleForExit);
+            }
         }
 
         Ok(ExitValidation {
