@@ -15,10 +15,7 @@ services:
 
   app:
     image: parking-control:local
-    build:
-      context: .
-      args:
-        BUILD_JOBS: ${BUILD_JOBS:-${CARGO_BUILD_JOBS:-}}
+    build: .
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/parking_control
       ROCKET_ADDRESS: 0.0.0.0
