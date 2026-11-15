@@ -6,8 +6,14 @@
     <title>Parking Control</title>
   </head>
   <body>
+    <nav aria-label="Interfaces">
+      <a href="#operacao" data-page-link="operacao">Operação</a>
+      <a href="#caixa" data-page-link="caixa">Caixa</a>
+      <a href="#gestao" data-page-link="gestao">Gestão</a>
+    </nav>
     <main>
       <h1>Parking Control</h1>
+      <div id="page-operacao" data-page="operacao">
       <section aria-labelledby="entry-heading">
         <h2 id="entry-heading">Entrada de veículo</h2>
         <form id="entry-form">
@@ -34,6 +40,17 @@
         </form>
         <p id="exit-result" aria-live="polite"></p>
       </section>
+      <section aria-labelledby="tickets-heading">
+        <h2 id="tickets-heading">Tickets</h2>
+        <button id="refresh-tickets" type="button">Atualizar lista</button>
+        <p id="tickets-error" role="alert"></p>
+        <table>
+          <thead><tr><th>Código</th><th>Placa</th><th>Entrada</th><th>Status</th></tr></thead>
+          <tbody id="tickets-body"></tbody>
+        </table>
+      </section>
+      </div>
+      <div id="page-caixa" data-page="caixa" hidden>
       <section aria-labelledby="cashier-heading">
         <h2 id="cashier-heading">Caixa</h2>
         <form id="charge-form">
@@ -52,15 +69,9 @@
         </form>
         <p id="payment-result" aria-live="polite"></p>
       </section>
-      <section aria-labelledby="tickets-heading">
-        <h2 id="tickets-heading">Tickets</h2>
-        <button id="refresh-tickets" type="button">Atualizar lista</button>
-        <p id="tickets-error" role="alert"></p>
-        <table>
-          <thead><tr><th>Código</th><th>Placa</th><th>Entrada</th><th>Status</th></tr></thead>
-          <tbody id="tickets-body"></tbody>
-        </table>
       </section>
+      </div>
+      <div id="page-gestao" data-page="gestao" hidden>
       <section aria-labelledby="management-heading">
         <h2 id="management-heading">Relatórios de gestão</h2>
         <form id="revenue-form">
@@ -97,6 +108,7 @@
         </form>
         <p id="management-error" role="alert"></p>
       </section>
+      </div>
     </main>
     <script type="module" src="/assets/main.js"></script>
   </body>

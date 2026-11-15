@@ -11,6 +11,22 @@ const cashier = new CashierController(api);
 const cashierView = new CashierView();
 const management = new ManagementController(new ManagementApi());
 const managementView = new ManagementView();
+
+const showPage = () => {
+  const requestedPage = window.location.hash.slice(1);
+  const page = ["operacao", "caixa", "gestao"].includes(requestedPage) ? requestedPage : "operacao";
+  document.querySelectorAll<HTMLElement>("[data-page]").forEach((element) => {
+    element.hidden = element.dataset.page !== page;
+  });
+  document.querySelectorAll<HTMLAnchorElement>("[data-page-link]").forEach((link) => {
+    if (link.dataset.pageLink === page) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  if (window.location.hash !== `#${page}`) window.history.replaceState(null, "", `#${page}`);
+};
+
+window.addEventListener("hashchange", showPage);
+showPage();
 const form = document.querySelector<HTMLFormElement>("#entry-form")!;
 const plateInput = document.querySelector<HTMLInputElement>("#vehicle-plate")!;
 const submit = document.querySelector<HTMLButtonElement>("#issue-ticket")!;
