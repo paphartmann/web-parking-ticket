@@ -15,7 +15,8 @@ The pricing policy includes 15 minutes of courtesy, R$ 15.00 for stays up to one
 ## Technology
 
 - **Backend:** Rust, Rocket, SeaORM, PostgreSQL
-- **Frontend:** TypeScript, served as static files by Rocket
+- **Frontend:** TypeScript, served as static files by Nginx
+- **Reverse proxy:** Nginx serves the frontend and proxies API requests to Rocket
 
 ## API overview
 
@@ -90,12 +91,14 @@ root run:
 docker compose up
 ```
 
-Compose builds `parking-control:local` when it is missing and reuses that image
-on later runs. To rebuild after changing the application, run
+Compose builds the API and Nginx images from their respective Dockerfile stages
+and reuses them on later runs. To rebuild after changing the application, run
 `docker compose up --build`.
 
-Open <http://localhost:8080>. Compose starts PostgreSQL, waits for it to become
-ready, and keeps its data in the `postgres_data` volume. Stop the containers
+Open <http://localhost:8080>. Nginx serves static files and forwards `/api/`
+and `/health` requests to the internal Rocket service. Compose starts
+PostgreSQL, waits for it to become ready, and keeps its data in the
+`postgres_data` volume. Stop the containers
 with `Ctrl+C`; use `docker compose down` to remove them (the database volume is
 preserved). To also delete the saved database data, run `docker compose down -v`.
 
@@ -108,7 +111,8 @@ Run the Rust application from the repository root:
 cargo run
 ```
 
-Rocket serves static files from `frontend/public`. Build the TypeScript frontend with:
+Nginx serves static files from `frontend/public` in the Compose deployment.
+For local development, Rocket serves only the API; build the TypeScript frontend with:
 
 ```sh
 cd frontend

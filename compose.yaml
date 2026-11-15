@@ -13,17 +13,23 @@ services:
       timeout: 5s
       retries: 10
 
-  app:
-    image: parking-control:local
-    build: .
+  api:
+    build:
+      context: .
+      target: api
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/parking_control
       ROCKET_ADDRESS: 0.0.0.0
-    ports:
-      - "8080:8000"
     depends_on:
       db:
         condition: service_healthy
+
+  nginx:
+    build: .
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:

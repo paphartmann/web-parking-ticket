@@ -8,9 +8,7 @@ mod domain;
 mod persistence;
 mod presentation;
 
-use rocket::fairing::AdHoc;
-use rocket::fs::FileServer;
-use rocket::{http, routes};
+use rocket::routes;
 use sea_orm::Database;
 
 #[rocket::launch]
@@ -24,29 +22,18 @@ async fn rocket() -> _ {
         .await
         .expect("could not initialize persistence schema or demo data");
 
-    rocket::build()
-        .attach(AdHoc::on_response("Content Security Policy", |_, resp| {
-            Box::pin(async move {
-                resp.set_header(http::Header::new(
-                    "Content-Security-Policy",
-                    "default-src 'self'; frame-ancestors 'self'; form-action 'self'",
-                ));
-            })
-        }))
-        .manage(repositories)
-        .mount("/", FileServer::from("frontend/public"))
-        .mount(
-            "/",
-            routes![
-                presentation::issue_entry_ticket,
-                presentation::list_tickets,
-                presentation::validate_exit,
-                presentation::calculate_charge,
-                presentation::register_payment,
-                presentation::revenue_report,
-                presentation::courtesy_report,
-                presentation::open_gate,
-                presentation::health
-            ],
-        )
+    rocket::build().manage(repositories).mount(
+        "/",
+        routes![
+            presentation::issue_entry_ticket,
+            presentation::list_tickets,
+            presentation::validate_exit,
+            presentation::calculate_charge,
+            presentation::register_payment,
+            presentation::revenue_report,
+            presentation::courtesy_report,
+            presentation::open_gate,
+            presentation::health
+        ],
+    )
 }

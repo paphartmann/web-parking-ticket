@@ -1,21 +1,20 @@
 FROM docker.io/library/node:22-bookworm-slim AS frontend
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM docker.io/library/rust:1-bookworm AS backend
+FROM docker.io/library/rust:1-bookworm AS api
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 RUN cargo build
-
-FROM docker.io/library/debian:bookworm-slim AS runtime
-WORKDIR /app
-# RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=backend /app/target/debug/parking-control /usr/local/bin/parking-control
-COPY frontend/public ./frontend/public
-COPY --from=frontend /app/frontend/public/assets ./frontend/public/assets
 EXPOSE 8000
-CMD ["parking-control"]
+CMD ["target/debug/parking-control"]
+
+FROM docker.io/library/nginx:1.27-alpine AS nginx
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY frontend/public/ /var/www/
+COPY --from=frontend /app/frontend/public/assets/ /var/www/assets/
+EXPOSE 80
